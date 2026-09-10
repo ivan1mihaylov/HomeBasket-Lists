@@ -38,3 +38,8 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
         [StaticPathConfig(CARD_URL, str(path), False)]
     )
     add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")
+    _LOGGER.info(
+        "Dashboard card registered at %s?v=%s - reload the page to pick it up",
+        CARD_URL,
+        VERSION,
+    )

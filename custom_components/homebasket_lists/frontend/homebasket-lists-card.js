@@ -1113,17 +1113,22 @@ class HomeBasketListsCardEditor extends HTMLElement {
   }
 }
 
-customElements.define('homebasket-lists-card', HomeBasketListsCard);
-customElements.define('homebasket-lists-card-editor', HomeBasketListsCardEditor);
+// Guarded, so a second copy of this file - a leftover Lovelace resource
+// alongside the one the integration serves - cannot throw and take the card
+// down with it.
+if (!customElements.get('homebasket-lists-card')) {
+  customElements.define('homebasket-lists-card', HomeBasketListsCard);
+  customElements.define('homebasket-lists-card-editor', HomeBasketListsCardEditor);
 
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: 'homebasket-lists-card',
-  name: 'HomeBasket Lists',
-  preview: false,
-  description: 'Shopping lists that stay in step with the built-in to-do lists.',
-  documentationURL: 'https://github.com/ivan1mihaylov/HomeBasket-Lists',
-});
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: 'homebasket-lists-card',
+    name: 'HomeBasket Lists',
+    preview: false,
+    description: 'Shopping lists that stay in step with the built-in to-do lists.',
+    documentationURL: 'https://github.com/ivan1mihaylov/HomeBasket-Lists',
+  });
+}
 
 console.info(
   `%c HOMEBASKET-LISTS-CARD %c ${VERSION} `,
