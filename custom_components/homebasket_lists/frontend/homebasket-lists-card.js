@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.5.1';
+const VERSION = '0.6.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -59,7 +59,6 @@ const TRANSLATIONS = {
       'have just updated it.',
     cardVersion: (version) => `Card version ${version}`,
     product: 'Product',
-    openProduct: 'Known to HomeBasket — tap for details',
     due: 'Due',
     duration: 'Takes',
     tools: 'Tools',
@@ -143,7 +142,6 @@ const TRANSLATIONS = {
       'ако току-що си обновявал.',
     cardVersion: (version) => `Версия на картата ${version}`,
     product: 'Продукт',
-    openProduct: 'Познат на HomeBasket — натисни за информация',
     due: 'Срок',
     duration: 'Отнема',
     tools: 'Инструменти',
@@ -567,7 +565,11 @@ const STYLES = `
   .dialog .product-note:hover { border-color: var(--hb-accent); }
   .dialog .product-note .thumb { width: 36px; height: 36px; border-radius: 9px; }
   .dialog .product-note .who { flex: 1 1 auto; min-width: 0; }
-  .dialog .product-note .who div:first-child { font-weight: 600; overflow-wrap: anywhere; }
+  .dialog .product-note .who div {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
   .dialog .product-note .chevron { flex: 0 0 auto; color: var(--hb-muted); font-size: 1.1rem; }
 
   /* Product details */
@@ -1262,7 +1264,6 @@ class HomeBasketListsCard extends HTMLElement {
                   'div',
                   { class: 'who' },
                   el('div', { text: item.product.name }),
-                  el('div', { class: 'hint', text: t.openProduct }),
                 ),
                 el('span', { class: 'chevron', text: '›' }),
               ),
