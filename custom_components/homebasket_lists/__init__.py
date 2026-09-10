@@ -18,7 +18,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 
 from . import websocket_api
-from .intent import async_register_intents, async_write_sentences
+from .intent import async_setup_intents, async_write_sentences
 from .api import HomeBasketListsAPI
 from .const import (
     ATTR_NOTE,
@@ -102,7 +102,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await async_register_frontend(hass)
     websocket_api.async_register(hass)
-    async_register_intents(hass)
+    await async_setup_intents(hass)
     await async_write_sentences(hass)
     _async_register_services(hass)
 

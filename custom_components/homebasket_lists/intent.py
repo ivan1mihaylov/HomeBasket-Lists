@@ -227,8 +227,13 @@ class ReadItemsIntent(_ListIntent):
         return response
 
 
-def async_register_intents(hass: HomeAssistant) -> None:
-    """Register the intents once."""
+async def async_setup_intents(hass: HomeAssistant) -> None:
+    """Register the intents.
+
+    Home Assistant calls this itself, because a module named `intent.py` is an
+    integration's intent platform. Setting a list up calls it again; the guard
+    makes the second call a no-op.
+    """
     if hass.data.get(_REGISTERED):
         return
     hass.data[_REGISTERED] = True
