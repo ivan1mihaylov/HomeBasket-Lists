@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, STORAGE_VERSION, TYPE_PRODUCT
+from .const import DOMAIN, STORAGE_VERSION
 
 STATUS_NEEDS_ACTION = "needs_action"
 STATUS_COMPLETED = "completed"
@@ -30,6 +30,9 @@ EDITABLE = (
     "quantity",
     "note",
     "due",
+    "duration",
+    "duration_unit",
+    "tools",
 )
 
 
@@ -95,7 +98,8 @@ class ListStore:
             "uid": uuid4().hex,
             "summary": str(fields.get("summary") or "").strip(),
             "status": fields.get("status") or STATUS_NEEDS_ACTION,
-            "type": fields.get("type") or TYPE_PRODUCT,
+            # No type is a valid choice: a plain line with a name and a note.
+            "type": fields.get("type"),
             "product_code": fields.get("product_code"),
             # Left empty on purpose when an item arrives from another list;
             # a shop is something the user assigns later.
@@ -103,6 +107,10 @@ class ListStore:
             "quantity": fields.get("quantity"),
             "note": fields.get("note"),
             "due": fields.get("due"),
+            # How long the task takes, and what it needs.
+            "duration": fields.get("duration"),
+            "duration_unit": fields.get("duration_unit"),
+            "tools": fields.get("tools"),
             "created": now,
             "updated": now,
         }

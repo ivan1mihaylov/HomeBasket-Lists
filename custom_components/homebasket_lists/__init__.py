@@ -21,16 +21,22 @@ from . import websocket_api
 from .intent import async_setup_intents, async_write_sentences
 from .api import HomeBasketListsAPI
 from .const import (
+    ATTR_DUE,
+    ATTR_DURATION,
+    ATTR_DURATION_UNIT,
     ATTR_NOTE,
     ATTR_PRODUCT_CODE,
     ATTR_QUANTITY,
     ATTR_STATUS,
     ATTR_STORE,
     ATTR_SUMMARY,
+    ATTR_TOOLS,
     ATTR_TYPE,
     ATTR_UID,
     DATA_API,
     DOMAIN,
+    DURATION_UNITS,
+    ITEM_TYPES,
     SERVICE_ADD_ITEM,
     SERVICE_GET_ITEMS,
     SERVICE_REMOVE_ITEM,
@@ -50,12 +56,29 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 ATTR_LIST = "list"
 
 ITEM_FIELDS = {
-    vol.Optional(ATTR_TYPE): cv.string,
+    vol.Optional(ATTR_TYPE): vol.Any(vol.In(ITEM_TYPES), None),
     vol.Optional(ATTR_STORE): cv.string,
     vol.Optional(ATTR_QUANTITY): cv.string,
     vol.Optional(ATTR_NOTE): cv.string,
+    vol.Optional(ATTR_DUE): cv.string,
+    vol.Optional(ATTR_DURATION): vol.Coerce(float),
+    vol.Optional(ATTR_DURATION_UNIT): vol.In(DURATION_UNITS),
+    vol.Optional(ATTR_TOOLS): cv.string,
     vol.Optional(ATTR_PRODUCT_CODE): cv.string,
 }
+
+# Every item field a service may set.
+SETTABLE = (
+    ATTR_TYPE,
+    ATTR_STORE,
+    ATTR_QUANTITY,
+    ATTR_NOTE,
+    ATTR_DUE,
+    ATTR_DURATION,
+    ATTR_DURATION_UNIT,
+    ATTR_TOOLS,
+    ATTR_PRODUCT_CODE,
+)
 
 ADD_ITEM_SCHEMA = vol.Schema(
     {
@@ -174,7 +197,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
     async def async_add_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))
-        fields = _fields(call, ATTR_TYPE, ATTR_STORE, ATTR_QUANTITY, ATTR_NOTE, ATTR_PRODUCT_CODE)
+        fields = _fields(call, *SETTABLE)
 
         summary = call.data[ATTR_SUMMARY]
         if ATTR_PRODUCT_CODE not in fields and (
@@ -188,16 +211,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
     async def async_update_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))
-        fields = _fields(
-            call,
-            ATTR_SUMMARY,
-            ATTR_STATUS,
-            ATTR_TYPE,
-            ATTR_STORE,
-            ATTR_QUANTITY,
-            ATTR_NOTE,
-            ATTR_PRODUCT_CODE,
-        )
+        fields = _fields(call, ATTR_SUMMARY, ATTR_STATUS, *SETTABLE)
         item = await runtime.store.async_update(call.data[ATTR_UID], **fields)
         if item is None:
             raise HomeAssistantError(f"No item {call.data[ATTR_UID]}")

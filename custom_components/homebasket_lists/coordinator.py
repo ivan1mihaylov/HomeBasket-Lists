@@ -8,13 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import (
-    CONF_ITEM_TYPES,
-    CONF_STORES,
-    DEFAULT_ITEM_TYPES,
-    EVENT_UPDATED,
-    SIGNAL_UPDATED,
-)
+from .const import CONF_STORES, EVENT_UPDATED, ITEM_TYPES, SIGNAL_UPDATED
 from .products import ProductLink
 from .store import ListStore
 from .sync import ListSync
@@ -52,11 +46,8 @@ class ListRuntime:
 
     @property
     def item_types(self) -> list[str]:
-        """Return the types an item may have."""
-        value = self._option(CONF_ITEM_TYPES, DEFAULT_ITEM_TYPES)
-        if isinstance(value, str):
-            value = [part.strip() for part in value.split(",")]
-        return [name for name in value or [] if name] or list(DEFAULT_ITEM_TYPES)
+        """Return the types an item may have, besides having none."""
+        return list(ITEM_TYPES)
 
     # ------------------------------------------------------------------
     # Lifecycle

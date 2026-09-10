@@ -19,11 +19,15 @@ add_item:
         text:
     type:
       name: Type
-      description: What kind of item this is, for example product or task.
+      description: >-
+        product, task, or left out for a plain line that carries only a name
+        and a note.
       required: false
-      example: product
       selector:
-        text:
+        select:
+          options:
+            - product
+            - task
     store:
       name: Shop
       description: The zone this should be bought at. Leave empty for anywhere.
@@ -46,6 +50,39 @@ add_item:
       selector:
         text:
           multiline: true
+    due:
+      name: Due
+      description: When a task should be done, as YYYY-MM-DD.
+      required: false
+      example: "2026-09-20"
+      selector:
+        text:
+    duration:
+      name: Takes
+      description: How long a task takes, in the unit below.
+      required: false
+      example: 45
+      selector:
+        number:
+          min: 0
+          mode: box
+    duration_unit:
+      name: Unit
+      description: The unit the duration is in.
+      required: false
+      selector:
+        select:
+          options:
+            - minutes
+            - hours
+            - days
+    tools:
+      name: Tools
+      description: Free text - what a task needs. Optional.
+      required: false
+      example: стълба, отвертка
+      selector:
+        text:
     product_code:
       name: Barcode
       description: >-
@@ -91,7 +128,10 @@ update_item:
       name: Type
       required: false
       selector:
-        text:
+        select:
+          options:
+            - product
+            - task
     store:
       name: Shop
       required: false
@@ -109,6 +149,39 @@ update_item:
       selector:
         text:
           multiline: true
+    due:
+      name: Due
+      description: When a task should be done, as YYYY-MM-DD.
+      required: false
+      example: "2026-09-20"
+      selector:
+        text:
+    duration:
+      name: Takes
+      description: How long a task takes, in the unit below.
+      required: false
+      example: 45
+      selector:
+        number:
+          min: 0
+          mode: box
+    duration_unit:
+      name: Unit
+      description: The unit the duration is in.
+      required: false
+      selector:
+        select:
+          options:
+            - minutes
+            - hours
+            - days
+    tools:
+      name: Tools
+      description: Free text - what a task needs. Optional.
+      required: false
+      example: стълба, отвертка
+      selector:
+        text:
     product_code:
       name: Barcode
       required: false
@@ -160,7 +233,10 @@ get_items:
       name: Type
       required: false
       selector:
-        text:
+        select:
+          options:
+            - product
+            - task
     status:
       name: Status
       required: false

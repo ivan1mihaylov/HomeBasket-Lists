@@ -10,7 +10,7 @@ from homeassistant.components import websocket_api as ws
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
+from .const import DOMAIN, DURATION_UNITS
 from .coordinator import ListRuntime
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION
 
@@ -28,6 +28,9 @@ ITEM_FIELDS = {
     vol.Optional("quantity"): vol.Any(str, None),
     vol.Optional("note"): vol.Any(str, None),
     vol.Optional("due"): vol.Any(str, None),
+    vol.Optional("duration"): vol.Any(int, float, None),
+    vol.Optional("duration_unit"): vol.Any(vol.In(DURATION_UNITS), None),
+    vol.Optional("tools"): vol.Any(str, None),
     vol.Optional("product_code"): vol.Any(str, None),
 }
 

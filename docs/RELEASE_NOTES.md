@@ -1,29 +1,29 @@
-### Adding an item by hand said "Unknown command"
+### Three kinds of item, each with its own fields
 
-`item/add` and `item/update` could never be reached. The WebSocket protocol
-names a command in a key called `type`, and the item's own kind was sent under
-that same name; voluptuous compares its markers by their string, so the field
-quietly replaced the command name and both commands registered under something
-unreachable. Ticking an item off was broken for the same reason.
-
-The kind now travels as `item_type`. Nothing else changes — the stored field is
-still `type`, and the `homebasket_lists.*` actions are untouched.
-
-### Products and tasks have different fields
+An item is a product, a task, or neither:
 
 | Type | Fields |
 | --- | --- |
-| **Task** | Name, due date, note |
-| **Everything else** | Name, quantity, shop, note |
+| **Product** | Name, quantity, shop, note |
+| **Task** | Name, due date, how long it takes, tools, note |
+| **None** | Name, note |
 
-A shop and a quantity belong to something you buy, so a task has neither and is
-never grouped under a shop. Types of your own count as things you buy. Changing
-the type in the sheet swaps the fields immediately and clears the ones the other
-type does not have, so a product turned into a task keeps no stale shop.
+"None" is a real choice now, not an empty type: a plain line with a name and a
+note, for something you just want to remember. Only a product carries a shop
+and a quantity, and only a product is grouped under a shop.
 
-### Product details in the item sheet
+### Tasks say how long they take, and what they need
 
-An item HomeBasket knows now shows a row you can tap: Nutri-Score, NOVA and
-Eco-Score, the nutrition table, ingredients, allergens, labels, packaging,
-origin and where it sells, with a link to its Open Food Facts page. It reads
-HomeBasket's cache, so it costs no network request.
+**Takes** is a number with a unit — minutes, hours or days. **Tools** is free
+text: a drill, a ladder, a spare filter. Both are optional, and both show on the
+item's row so a glance at the list tells you what a job needs.
+
+Switching an item's type swaps the fields immediately and clears what the new
+type does not have.
+
+### Also
+
+The item type is no longer a per-list setting — the three kinds are fixed, so
+there is nothing to configure. The `homebasket_lists.add_item` and
+`update_item` actions take `due`, `duration`, `duration_unit` and `tools` as
+well.

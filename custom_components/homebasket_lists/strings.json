@@ -8,7 +8,6 @@
           "name": "List name",
           "linked_lists": "Keep in sync with",
           "stores": "Shops",
-          "item_types": "Item types",
           "link_products": "Recognise HomeBasket products"
         },
         "data_description": {
@@ -32,7 +31,6 @@
         "data": {
           "linked_lists": "Keep in sync with",
           "stores": "Shops",
-          "item_types": "Item types",
           "link_products": "Recognise HomeBasket products"
         }
       }

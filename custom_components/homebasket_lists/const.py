@@ -20,7 +20,12 @@ CONF_STORES: Final = "stores"
 CONF_ITEM_TYPES: Final = "item_types"
 CONF_LINK_PRODUCTS: Final = "link_products"
 
-DEFAULT_ITEM_TYPES: Final = ["product", "task"]
+# An item is a product, a task, or neither. "Neither" is stored as no type at
+# all and carries only a name and a note.
+TYPE_PRODUCT: Final = "product"
+TYPE_TASK: Final = "task"
+ITEM_TYPES: Final = [TYPE_PRODUCT, TYPE_TASK]
+DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 DEFAULT_LINK_PRODUCTS: Final = True
 
 # Item fields we keep beyond what a to-do item can hold
@@ -32,9 +37,13 @@ ATTR_PRODUCT_CODE: Final = "product_code"
 ATTR_STORE: Final = "store"
 ATTR_QUANTITY: Final = "quantity"
 ATTR_NOTE: Final = "note"
+ATTR_DUE: Final = "due"
+ATTR_DURATION: Final = "duration"
+ATTR_DURATION_UNIT: Final = "duration_unit"
+ATTR_TOOLS: Final = "tools"
 
-TYPE_PRODUCT: Final = "product"
-TYPE_TASK: Final = "task"
+# How long a task takes.
+DURATION_UNITS: Final = ["minutes", "hours", "days"]
 
 # Events
 EVENT_UPDATED: Final = "homebasket_lists_updated"

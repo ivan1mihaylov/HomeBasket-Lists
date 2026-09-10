@@ -40,7 +40,6 @@ another. Each list has:
 | --- | --- |
 | **Keep in sync with** | Built-in to-do lists this one mirrors, in both directions. Any number of them. |
 | **Shops** | Zones that count as shops. An item can be assigned one. |
-| **Item types** | What an item can be, e.g. product or task. Add your own. |
 | **Recognise HomeBasket products** | Match item names against HomeBasket, so the card can show pictures and categories. |
 
 ## How the sync works

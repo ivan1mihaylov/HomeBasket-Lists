@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.2.0';
+const VERSION = '0.3.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -37,7 +37,6 @@ const TRANSLATIONS = {
     store: 'Shop',
     note: 'Note',
     anywhere: 'Anywhere',
-    noType: 'No type',
     save: 'Save',
     cancel: 'Cancel',
     delete: 'Delete',
@@ -50,7 +49,12 @@ const TRANSLATIONS = {
     product: 'Product',
     openProduct: 'Known to HomeBasket — tap for details',
     due: 'Due',
-    types: { product: 'Product', task: 'Task' },
+    duration: 'Takes',
+    tools: 'Tools',
+    toolsHint: 'Optional. What the job needs — a drill, a ladder, a spare filter.',
+    units: { minutes: 'minutes', hours: 'hours', days: 'days' },
+    shortUnits: { minutes: 'min', hours: 'h', days: 'd' },
+    types: { '': 'None', product: 'Product', task: 'Task' },
     details: 'Product details',
     loading: 'Loading…',
     noDetails: 'HomeBasket has nothing more on this product.',
@@ -105,7 +109,6 @@ const TRANSLATIONS = {
     store: 'Магазин',
     note: 'Бележка',
     anywhere: 'Навсякъде',
-    noType: 'Без тип',
     save: 'Запази',
     cancel: 'Отказ',
     delete: 'Изтрий',
@@ -118,7 +121,12 @@ const TRANSLATIONS = {
     product: 'Продукт',
     openProduct: 'Познат на HomeBasket — натисни за информация',
     due: 'Срок',
-    types: { product: 'Продукт', task: 'Задача' },
+    duration: 'Отнема',
+    tools: 'Инструменти',
+    toolsHint: 'По избор. Какво трябва за работата — бормашина, стълба, филтър.',
+    units: { minutes: 'минути', hours: 'часа', days: 'дни' },
+    shortUnits: { minutes: 'мин', hours: 'ч', days: 'дни' },
+    types: { '': 'Без', product: 'Продукт', task: 'Задача' },
     details: 'Информация за продукта',
     loading: 'Зареждане…',
     noDetails: 'HomeBasket няма повече информация за този продукт.',
@@ -380,6 +388,21 @@ const STYLES = `
   .dialog textarea { min-height: 74px; resize: vertical; }
   .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
   .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
+  .dialog .duration { display: flex; gap: 8px; margin-bottom: 14px; }
+  .dialog .duration input { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+  .dialog .duration select { flex: 0 0 auto; width: 40%; margin-bottom: 0; }
+  .dialog input[type='number'] {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--hb-fg);
+    background: var(--hb-sunken);
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 14px;
+  }
   .dialog input[type='date'] {
     width: 100%;
     box-sizing: border-box;
@@ -675,10 +698,16 @@ const DEFAULT_CONFIG = {
 const STATUS_DONE = 'completed';
 const STATUS_OPEN = 'needs_action';
 
-// Everything that is not a task is something you buy, including any type of
-// your own, so only a task loses the shop and the quantity.
+// Three kinds, and each shows only what it needs: a product is bought
+// somewhere in some amount, a task takes time and tools, and something with no
+// type at all is just a line with a note.
+const TYPE_PRODUCT = 'product';
 const TYPE_TASK = 'task';
+const TYPES = ['', TYPE_PRODUCT, TYPE_TASK];
+const DURATION_UNITS = ['minutes', 'hours', 'days'];
+
 const isTask = (type) => type === TYPE_TASK;
+const isProduct = (type) => type === TYPE_PRODUCT;
 
 class HomeBasketListsCard extends HTMLElement {
   constructor() {
@@ -869,8 +898,14 @@ class HomeBasketListsCard extends HTMLElement {
   }
 
   _typeName(type) {
-    if (!type) return null;
-    return this._t.types[type] || type;
+    return this._t.types[type || ''] ?? type;
+  }
+
+  /** "30 min", "2 h" - what a task takes, in the unit it was given in. */
+  _durationLabel(item) {
+    if (!item.duration) return null;
+    const unit = this._t.shortUnits[item.duration_unit] || item.duration_unit || '';
+    return `${item.duration} ${unit}`.trim();
   }
 
   /* ---------------- The item sheet ---------------- */
@@ -928,8 +963,7 @@ class HomeBasketListsCard extends HTMLElement {
 
           content.appendChild(el('label', { text: t.type }));
           fields.type = el('select');
-          fields.type.appendChild(el('option', { value: '', text: t.noType }));
-          for (const name of board.item_types || []) {
+          for (const name of TYPES) {
             fields.type.appendChild(
               el('option', { value: name, text: this._typeName(name) }),
             );
@@ -937,12 +971,35 @@ class HomeBasketListsCard extends HTMLElement {
           fields.type.value = type;
           content.appendChild(fields.type);
 
-          // A product is bought somewhere, in some amount; a task is due.
           const perType = el('div');
           content.appendChild(perType);
 
           const drawPerType = () => {
             perType.replaceChildren();
+            fields.quantity = null;
+            fields.store = null;
+            fields.due = null;
+            fields.duration = null;
+            fields.durationUnit = null;
+            fields.tools = null;
+
+            if (isProduct(type)) {
+              perType.appendChild(el('label', { text: t.quantity }));
+              fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
+              perType.appendChild(fields.quantity);
+
+              perType.appendChild(el('label', { text: t.store }));
+              fields.store = el('select');
+              fields.store.appendChild(el('option', { value: '', text: t.anywhere }));
+              for (const zone of board.stores || []) {
+                fields.store.appendChild(
+                  el('option', { value: zone, text: this._storeName(zone) }),
+                );
+              }
+              fields.store.value = item.store || '';
+              perType.appendChild(fields.store);
+              return;
+            }
 
             if (isTask(type)) {
               perType.appendChild(el('label', { text: t.due }));
@@ -951,26 +1008,31 @@ class HomeBasketListsCard extends HTMLElement {
                 value: (item.due || '').slice(0, 10),
               });
               perType.appendChild(fields.due);
-              fields.quantity = null;
-              fields.store = null;
-              return;
-            }
 
-            perType.appendChild(el('label', { text: t.quantity }));
-            fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
-            perType.appendChild(fields.quantity);
-
-            perType.appendChild(el('label', { text: t.store }));
-            fields.store = el('select');
-            fields.store.appendChild(el('option', { value: '', text: t.anywhere }));
-            for (const zone of board.stores || []) {
-              fields.store.appendChild(
-                el('option', { value: zone, text: this._storeName(zone) }),
+              perType.appendChild(el('label', { text: t.duration }));
+              fields.duration = el('input', {
+                type: 'number',
+                min: '0',
+                step: 'any',
+                value: item.duration ?? '',
+              });
+              fields.durationUnit = el('select');
+              for (const unit of DURATION_UNITS) {
+                fields.durationUnit.appendChild(
+                  el('option', { value: unit, text: t.units[unit] }),
+                );
+              }
+              fields.durationUnit.value = item.duration_unit || 'minutes';
+              perType.appendChild(
+                el('div', { class: 'duration' }, fields.duration, fields.durationUnit),
               );
+
+              perType.appendChild(el('label', { text: t.tools }));
+              fields.tools = el('input', { type: 'text', value: item.tools || '' });
+              perType.appendChild(fields.tools);
+              perType.appendChild(el('p', { class: 'hint', text: t.toolsHint }));
             }
-            fields.store.value = item.store || '';
-            perType.appendChild(fields.store);
-            fields.due = null;
+            // With no type there is nothing here: just the name and the note.
           };
 
           fields.type.addEventListener('change', () => {
@@ -1000,11 +1062,19 @@ class HomeBasketListsCard extends HTMLElement {
                   summary: fields.summary.value.trim(),
                   item_type: fields.type.value || null,
                   note: fields.note.value.trim() || null,
-                  // The fields the other type does not have are cleared, so a
-                  // product turned into a task does not keep a stale shop.
+                  // Whatever the chosen kind does not show is cleared, so a
+                  // product turned into a task keeps no stale shop.
                   quantity: fields.quantity ? fields.quantity.value.trim() || null : null,
                   store: fields.store ? fields.store.value || null : null,
                   due: fields.due ? fields.due.value || null : null,
+                  duration: fields.duration
+                    ? Number(fields.duration.value) || null
+                    : null,
+                  duration_unit:
+                    fields.duration && Number(fields.duration.value)
+                      ? fields.durationUnit.value
+                      : null,
+                  tools: fields.tools ? fields.tools.value.trim() || null : null,
                 },
                 close,
               ),
@@ -1283,7 +1353,7 @@ class HomeBasketListsCard extends HTMLElement {
     if (this._config.group_by_store && board.stores?.length) {
       const groups = new Map();
       for (const item of open) {
-        const key = isTask(item.type) ? '' : item.store || '';
+        const key = isProduct(item.type) ? item.store || '' : '';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       }
@@ -1335,7 +1405,7 @@ class HomeBasketListsCard extends HTMLElement {
 
     const thumb = el('div', { class: 'thumb' });
     const image = el('img', { alt: '', loading: 'lazy', hidden: true });
-    thumb.append(image, icon(item.type === 'task' ? 'task' : 'image'));
+    thumb.append(image, icon(isTask(item.type) ? 'task' : 'image'));
     if (item.product?.has_photo) this._fillPhoto(item.product.code, image);
     else if (item.product?.image) {
       image.src = item.product.image;
@@ -1350,10 +1420,15 @@ class HomeBasketListsCard extends HTMLElement {
     if (item.store && !hideStore && !isTask(item.type)) {
       meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
     }
-    if (isTask(item.type) && item.due) {
-      meta.appendChild(
-        el('span', { class: 'chip qty', text: `${t.due}: ${item.due.slice(0, 10)}` }),
-      );
+    if (isTask(item.type)) {
+      if (item.due) {
+        meta.appendChild(
+          el('span', { class: 'chip qty', text: `${t.due}: ${item.due.slice(0, 10)}` }),
+        );
+      }
+      const takes = this._durationLabel(item);
+      if (takes) meta.appendChild(el('span', { class: 'chip qty', text: takes }));
+      if (item.tools) meta.appendChild(el('span', { class: 'chip', text: item.tools }));
     }
     if (item.type) meta.appendChild(el('span', { class: 'chip', text: this._typeName(item.type) }));
     if (item.product?.category) {

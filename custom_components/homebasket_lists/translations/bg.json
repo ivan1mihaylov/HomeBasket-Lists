@@ -8,7 +8,6 @@
           "name": "Име на списъка",
           "linked_lists": "Синхронизирай с",
           "stores": "Магазини",
-          "item_types": "Типове записи",
           "link_products": "Разпознавай продукти от HomeBasket"
         },
         "data_description": {
@@ -32,7 +31,6 @@
         "data": {
           "linked_lists": "Синхронизирай с",
           "stores": "Магазини",
-          "item_types": "Типове записи",
           "link_products": "Разпознавай продукти от HomeBasket"
         }
       }

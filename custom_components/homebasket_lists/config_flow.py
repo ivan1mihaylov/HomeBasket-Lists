@@ -20,20 +20,15 @@ from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
-    SelectSelector,
-    SelectSelectorConfig,
-    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
 )
 
 from .const import (
-    CONF_ITEM_TYPES,
     CONF_LINK_PRODUCTS,
     CONF_LINKED_LISTS,
     CONF_NAME,
     CONF_STORES,
-    DEFAULT_ITEM_TYPES,
     DEFAULT_LINK_PRODUCTS,
     DOMAIN,
 )
@@ -48,17 +43,6 @@ def _settings(defaults: dict[str, Any]) -> dict:
         vol.Optional(
             CONF_STORES, default=defaults.get(CONF_STORES, [])
         ): EntitySelector(EntitySelectorConfig(domain="zone", multiple=True)),
-        vol.Optional(
-            CONF_ITEM_TYPES,
-            default=defaults.get(CONF_ITEM_TYPES, list(DEFAULT_ITEM_TYPES)),
-        ): SelectSelector(
-            SelectSelectorConfig(
-                options=list(DEFAULT_ITEM_TYPES),
-                multiple=True,
-                custom_value=True,
-                mode=SelectSelectorMode.DROPDOWN,
-            )
-        ),
         vol.Optional(
             CONF_LINK_PRODUCTS,
             default=defaults.get(CONF_LINK_PRODUCTS, DEFAULT_LINK_PRODUCTS),
