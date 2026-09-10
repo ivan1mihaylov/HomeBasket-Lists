@@ -1,10 +1,17 @@
-A failed product search looked exactly like a search that found nothing: the
-error was caught and thrown away, so there was no way to tell "HomeBasket knows
-no such product" from "the request never arrived".
+Aimed at working out why suggestions stay empty, which turned out to be hard to
+diagnose from a phone.
 
-It now reports. A failure is logged to the browser console, and a search that
-cannot reach the integration at all — which happens when Home Assistant has not
-been restarted after an update — says so once instead of staying quiet.
+**A failed search now says so on screen.** The console warning added in 0.4.2 is
+no use in the Companion app, which has no console. A search that fails now shows
+the reason once, and one that cannot reach the integration at all — what an
+update without a restart looks like — says exactly that.
 
-Nothing is asked for when HomeBasket is not installed, where there is nothing
-to suggest anyway.
+**The card's version is in its own editor**, at the bottom, so you can tell
+which build the app is actually running without a console. The Companion app
+keeps its own cache, separate from any browser, so it can be a version behind
+everything else.
+
+**An answer is no longer thrown away when the field changes underneath it.** The
+check that dropped a stale reply compared the field's text, which a phone
+keyboard can rewrite after the request has gone out — losing a good answer.
+Requests are numbered now, and the newest one wins.

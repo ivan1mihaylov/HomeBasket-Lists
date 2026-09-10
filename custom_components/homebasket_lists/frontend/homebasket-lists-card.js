@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.4.2';
+const VERSION = '0.4.3';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -47,9 +47,11 @@ const TRANSLATIONS = {
     synced: 'Lists are in step',
     linkedTo: (n) => `Linked to ${n} list${n === 1 ? '' : 's'}`,
     suggestions: 'Known products',
-    searchFailed:
-      'Could not reach HomeBasket Lists for suggestions. Restart Home Assistant ' +
-      'if you have just updated it.',
+    searchFailed: (reason) => `Suggestions failed: ${reason}`,
+    searchUnavailable:
+      'Suggestions cannot reach HomeBasket Lists. Restart Home Assistant if you ' +
+      'have just updated it.',
+    cardVersion: (version) => `Card version ${version}`,
     product: 'Product',
     openProduct: 'Known to HomeBasket — tap for details',
     due: 'Due',
@@ -123,9 +125,11 @@ const TRANSLATIONS = {
     synced: 'Списъците са изравнени',
     linkedTo: (n) => `Свързан с ${n} ${n === 1 ? 'списък' : 'списъка'}`,
     suggestions: 'Познати продукти',
-    searchFailed:
+    searchFailed: (reason) => `Предложенията не успяха: ${reason}`,
+    searchUnavailable:
       'Предложенията не стигат до HomeBasket Lists. Рестартирай Home Assistant, ' +
       'ако току-що си обновявал.',
+    cardVersion: (version) => `Версия на картата ${version}`,
     product: 'Продукт',
     openProduct: 'Познат на HomeBasket — натисни за информация',
     due: 'Срок',
@@ -898,22 +902,36 @@ class HomeBasketListsCard extends HTMLElement {
       return;
     }
 
+    // Each request gets a number, and only the newest one may paint. Comparing
+    // the field's text instead threw away a good answer whenever a phone
+    // keyboard adjusted the word after the request went out.
+    const ticket = (this._suggestTicket = (this._suggestTicket || 0) + 1);
+
     this._suggestTimer = setTimeout(async () => {
       try {
         const { products } = await this._call('homebasket_lists/products/search', {
           query,
         });
-        // The field may have moved on while the answer was in flight.
-        if (this._input.value.trim() !== query) return;
+        if (ticket !== this._suggestTicket) return;
         this._suggestions = products || [];
       } catch (err) {
+        if (ticket !== this._suggestTicket) return;
         this._suggestions = [];
-        // Swallowing this made a broken search look exactly like a search
-        // that found nothing, which is the worst way to fail.
+
+        // Swallowing this made a broken search look exactly like a search that
+        // found nothing. There is no console on a phone, so it has to be said
+        // on screen - once, so it does not nag with every keystroke.
         console.warn('homebasket-lists: product search failed', err);
-        if (err?.code === 'unknown_command' && !this._warnedAboutSearch) {
+        if (!this._warnedAboutSearch) {
           this._warnedAboutSearch = true;
-          toast(this.shadowRoot, this._t.searchFailed, true);
+          const t = this._t;
+          toast(
+            this.shadowRoot,
+            err?.code === 'unknown_command'
+              ? t.searchUnavailable
+              : t.searchFailed(err?.message || err?.code || 'unknown'),
+            true,
+          );
         }
       }
       this._suggestIndex = -1;
@@ -1783,6 +1801,15 @@ class HomeBasketListsCardEditor extends HTMLElement {
         ),
       );
     }
+
+    // The version, somewhere reachable without a browser console - which a
+    // phone does not have.
+    content.appendChild(
+      el('small', {
+        class: 'hint',
+        text: stringsFor(this._hass?.locale?.language).cardVersion(VERSION),
+      }),
+    );
 
     this.shadowRoot.replaceChildren(style, content);
   }
