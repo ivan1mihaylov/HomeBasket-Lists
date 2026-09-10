@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "New list",
+        "description": "Lists appear as normal to-do entities, so voice assistants and the built-in panel can use them.",
+        "data": {
+          "name": "List name",
+          "linked_lists": "Keep in sync with",
+          "stores": "Shops",
+          "item_types": "Item types",
+          "link_products": "Recognise HomeBasket products"
+        },
+        "data_description": {
+          "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
+          "stores": "Zones that are shops. An item can be assigned one; items without a shop can be bought anywhere.",
+          "link_products": "Match item names against HomeBasket so the card can show pictures and details."
+        }
+      }
+    },
+    "error": { "empty_name": "Give the list a name." },
+    "abort": { "already_configured": "A list with this name already exists." }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "List settings",
+        "data": {
+          "linked_lists": "Keep in sync with",
+          "stores": "Shops",
+          "item_types": "Item types",
+          "link_products": "Recognise HomeBasket products"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,186 @@
+add_item:
+  name: Add an item
+  description: Add an item to a HomeBasket list, with the extra fields a to-do item cannot hold.
+  fields:
+    entity_id:
+      name: List
+      description: The HomeBasket list to add to.
+      required: true
+      example: todo.shopping
+      selector:
+        entity:
+          integration: homebasket_lists
+          domain: todo
+    summary:
+      name: Name
+      description: What to buy or do.
+      required: true
+      example: Прясно мляко
+      selector:
+        text:
+    type:
+      name: Type
+      description: What kind of item this is, for example product or task.
+      required: false
+      example: product
+      selector:
+        text:
+    store:
+      name: Shop
+      description: The zone this should be bought at. Leave empty for anywhere.
+      required: false
+      example: zone.kaufland
+      selector:
+        entity:
+          domain: zone
+    quantity:
+      name: Quantity
+      description: How many or how much.
+      required: false
+      example: 2 бр.
+      selector:
+        text:
+    note:
+      name: Note
+      description: Anything worth remembering about this item.
+      required: false
+      selector:
+        text:
+          multiline: true
+    product_code:
+      name: Barcode
+      description: >-
+        Link the item to a HomeBasket product. Filled in automatically when the
+        name matches a product exactly.
+      required: false
+      selector:
+        text:
+
+update_item:
+  name: Update an item
+  description: Change an item. Only the fields you pass are touched.
+  fields:
+    entity_id:
+      name: List
+      required: true
+      selector:
+        entity:
+          integration: homebasket_lists
+          domain: todo
+    uid:
+      name: Item id
+      description: The uid of the item, as returned by Get items.
+      required: true
+      selector:
+        text:
+    summary:
+      name: Name
+      required: false
+      selector:
+        text:
+    status:
+      name: Status
+      description: needs_action or completed.
+      required: false
+      selector:
+        select:
+          options:
+            - needs_action
+            - completed
+    type:
+      name: Type
+      required: false
+      selector:
+        text:
+    store:
+      name: Shop
+      required: false
+      selector:
+        entity:
+          domain: zone
+    quantity:
+      name: Quantity
+      required: false
+      selector:
+        text:
+    note:
+      name: Note
+      required: false
+      selector:
+        text:
+          multiline: true
+    product_code:
+      name: Barcode
+      required: false
+      selector:
+        text:
+
+remove_item:
+  name: Remove an item
+  description: Delete an item here and in every linked list.
+  fields:
+    entity_id:
+      name: List
+      required: true
+      selector:
+        entity:
+          integration: homebasket_lists
+          domain: todo
+    uid:
+      name: Item id
+      required: true
+      selector:
+        text:
+
+get_items:
+  name: Get items
+  description: >-
+    Return the items of one list or of all of them, with their shop, type and
+    linked product. Use it to build a reminder for when you reach a shop.
+  fields:
+    entity_id:
+      name: List
+      description: Leave empty to read every list.
+      required: false
+      selector:
+        entity:
+          integration: homebasket_lists
+          domain: todo
+    store:
+      name: Shop
+      description: >-
+        Keep the items to buy at this zone. Items with no shop are always
+        included, since they can be bought anywhere.
+      required: false
+      example: zone.kaufland
+      selector:
+        entity:
+          domain: zone
+    type:
+      name: Type
+      required: false
+      selector:
+        text:
+    status:
+      name: Status
+      required: false
+      selector:
+        select:
+          options:
+            - needs_action
+            - completed
+
+sync_now:
+  name: Sync now
+  description: >-
+    Read the linked lists and push our items back out, instead of waiting for
+    the next change. Also links items to HomeBasket products.
+  fields:
+    entity_id:
+      name: List
+      description: Leave empty to sync every list.
+      required: false
+      selector:
+        entity:
+          integration: homebasket_lists
+          domain: todo

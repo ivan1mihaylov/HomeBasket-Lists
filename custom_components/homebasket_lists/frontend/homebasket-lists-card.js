@@ -1,0 +1,1132 @@
+/**
+ * HomeBasket Lists card.
+ *
+ * Shopping lists that stay in step with the built-in Home Assistant to-do
+ * lists, showing what HomeBasket knows about each product. Written against
+ * plain DOM APIs on purpose - it uses no Home Assistant frontend internals, so
+ * it does not break when those are renamed.
+ *
+ * https://github.com/ivan1mihaylov/HomeBasket-Lists
+ */
+
+const VERSION = '0.1.0';
+
+/* ------------------------------------------------------------------ *
+ * Translations
+ * ------------------------------------------------------------------ */
+
+const TRANSLATIONS = {
+  en: {
+    title: 'Lists',
+    addPlaceholder: 'Add an item',
+    add: 'Add',
+    empty: 'Nothing on this list yet.',
+    noLists: 'No list yet. Add one under Settings → Devices & Services → HomeBasket Lists.',
+    notSetUp:
+      'HomeBasket Lists is not set up yet. Add it under Settings → Devices & ' +
+      'Services → Add Integration → HomeBasket Lists, then reload this page.',
+    noAnswer: 'HomeBasket Lists did not answer.',
+    tryAgain: 'Try again',
+    done: 'Done',
+    doneCount: (n) => `${n} done`,
+    itemsLeft: (n) => `${n} left`,
+    edit: 'Edit item',
+    name: 'Name',
+    quantity: 'Quantity',
+    type: 'Type',
+    store: 'Shop',
+    note: 'Note',
+    anywhere: 'Anywhere',
+    noType: 'No type',
+    save: 'Save',
+    cancel: 'Cancel',
+    delete: 'Delete',
+    deleteTitle: 'Delete item',
+    deleteMessage: (name) => `${name} will be removed from this list and every linked one.`,
+    sync: 'Sync now',
+    syncing: 'Syncing…',
+    synced: 'Lists are in step',
+    linkedTo: (n) => `Linked to ${n} list${n === 1 ? '' : 's'}`,
+    product: 'Product',
+    openProduct: 'Known to HomeBasket',
+    types: { product: 'Product', task: 'Task' },
+  },
+  bg: {
+    title: 'Списъци',
+    addPlaceholder: 'Добави запис',
+    add: 'Добави',
+    empty: 'В този списък още няма нищо.',
+    noLists: 'Още няма списък. Добави от Настройки → Устройства и услуги → HomeBasket Lists.',
+    notSetUp:
+      'HomeBasket Lists още не е добавена. Добави я от Настройки → Устройства ' +
+      'и услуги → Добавяне на интеграция → HomeBasket Lists и презареди страницата.',
+    noAnswer: 'HomeBasket Lists не отговори.',
+    tryAgain: 'Опитай пак',
+    done: 'Готови',
+    doneCount: (n) => `${n} готови`,
+    itemsLeft: (n) => `остават ${n}`,
+    edit: 'Редакция на запис',
+    name: 'Име',
+    quantity: 'Количество',
+    type: 'Тип',
+    store: 'Магазин',
+    note: 'Бележка',
+    anywhere: 'Навсякъде',
+    noType: 'Без тип',
+    save: 'Запази',
+    cancel: 'Отказ',
+    delete: 'Изтрий',
+    deleteTitle: 'Изтриване на запис',
+    deleteMessage: (name) => `${name} ще бъде премахнат от този списък и от всички свързани.`,
+    sync: 'Синхронизирай',
+    syncing: 'Синхронизиране…',
+    synced: 'Списъците са изравнени',
+    linkedTo: (n) => `Свързан с ${n} ${n === 1 ? 'списък' : 'списъка'}`,
+    product: 'Продукт',
+    openProduct: 'Познат на HomeBasket',
+    types: { product: 'Продукт', task: 'Задача' },
+  },
+};
+
+function stringsFor(language) {
+  const code = String(language || 'en').toLowerCase().split('-')[0];
+  return TRANSLATIONS[code] || TRANSLATIONS.en;
+}
+
+/* ------------------------------------------------------------------ *
+ * Styles
+ * ------------------------------------------------------------------ */
+
+const STYLES = `
+  :host {
+    --hb-fg: var(--primary-text-color, #212121);
+    --hb-muted: var(--secondary-text-color, #727272);
+    --hb-accent: var(--primary-color, #03a9f4);
+    --hb-danger: var(--error-color, #db4437);
+    --hb-ok: var(--success-color, #43a047);
+    --hb-line: var(--divider-color, rgba(127, 127, 127, 0.22));
+    --hb-surface: var(--card-background-color, #fff);
+    --hb-sunken: color-mix(in srgb, var(--hb-fg) 5%, transparent);
+    --hb-raised: color-mix(in srgb, var(--hb-fg) 3%, var(--hb-surface));
+    display: block;
+    color: var(--hb-fg);
+  }
+
+  .card {
+    background: var(--hb-surface);
+    border-radius: var(--ha-card-border-radius, 22px);
+    box-shadow: var(--ha-card-box-shadow, 0 2px 6px rgba(0, 0, 0, 0.1));
+    border: var(--ha-card-border-width, 1px) solid
+      var(--ha-card-border-color, var(--hb-line));
+    overflow: hidden;
+  }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 18px 8px; }
+  header h2 { margin: 0; font-size: 1.3rem; font-weight: 600; line-height: 1.2; }
+  header .right { display: flex; align-items: center; gap: 6px; }
+  .pill {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--hb-sunken);
+    color: var(--hb-muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .tabs { display: flex; gap: 6px; overflow-x: auto; padding: 4px 18px 0; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--hb-line);
+    background: var(--hb-raised);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  .tab[aria-selected='true'] {
+    background: var(--hb-accent);
+    border-color: var(--hb-accent);
+    color: var(--text-primary-color, #fff);
+    font-weight: 600;
+  }
+
+  .body { padding: 12px 18px 18px; }
+
+  button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; border-radius: 10px; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button svg { width: 20px; height: 20px; fill: currentColor; display: block; }
+  .icon-btn { display: grid; place-items: center; width: 36px; height: 36px; color: var(--hb-muted); }
+  .icon-btn:hover { color: var(--hb-accent); background: var(--hb-sunken); }
+  .icon-btn.danger:hover { color: var(--hb-danger); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    background: var(--hb-surface);
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  .btn.primary { background: var(--hb-accent); border-color: var(--hb-accent); color: var(--text-primary-color, #fff); }
+  .btn.block { width: 100%; }
+
+  .add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .add-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--hb-fg);
+    background: var(--hb-sunken);
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    padding: 11px 14px;
+  }
+  .add-row input:focus { outline: 2px solid var(--hb-accent); outline-offset: -1px; }
+  .add-row .btn.primary { padding: 0 16px; }
+
+  .items { display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--hb-line);
+    background: var(--hb-raised);
+  }
+  .item.done { opacity: 0.55; }
+  .item.done .name { text-decoration: line-through; }
+
+  .tick {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 2px solid var(--hb-line);
+    color: transparent;
+    padding: 0;
+  }
+  .tick:hover { border-color: var(--hb-accent); }
+  .tick[aria-pressed='true'] { background: var(--hb-ok); border-color: var(--hb-ok); color: #fff; }
+  .tick svg { width: 14px; height: 14px; }
+
+  .thumb {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--hb-sunken);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb svg { width: 20px; height: 20px; fill: var(--hb-muted); }
+
+  .who { flex: 1 1 auto; min-width: 0; cursor: pointer; }
+  .who .name { font-size: 0.9375rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+  .who .meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 3px; }
+  .chip {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--hb-sunken);
+    color: var(--hb-muted);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .chip.store { background: color-mix(in srgb, var(--hb-accent) 16%, transparent); color: var(--hb-accent); }
+  .chip.qty { font-variant-numeric: tabular-nums; }
+
+  .group-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hb-muted);
+  }
+  .group-title::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--hb-line); }
+
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 26px 8px;
+    text-align: center;
+    color: var(--hb-muted);
+    font-size: 0.875rem;
+  }
+  .empty p { margin: 0; max-width: 40ch; }
+
+  /* Dialogs */
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.55);
+  }
+  .dialog {
+    width: min(440px, 100%);
+    max-height: min(90vh, 760px);
+    display: flex;
+    flex-direction: column;
+    background: var(--hb-surface);
+    color: var(--hb-fg);
+    border-radius: 18px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+  }
+  .dialog h3 { margin: 0; padding: 18px 18px 8px; font-size: 1.1rem; font-weight: 600; }
+  .dialog .content { padding: 8px 18px 16px; overflow: auto; }
+  .dialog label { display: block; margin-bottom: 6px; font-size: 0.8125rem; color: var(--hb-muted); }
+  .dialog input[type='text'],
+  .dialog select,
+  .dialog textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--hb-fg);
+    background: var(--hb-sunken);
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 14px;
+  }
+  .dialog textarea { min-height: 74px; resize: vertical; }
+  .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
+  .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
+  .dialog .product-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+    background: var(--hb-sunken);
+    font-size: 0.8125rem;
+  }
+  .dialog .product-note .thumb { width: 36px; height: 36px; border-radius: 9px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 20;
+    max-width: min(90vw, 420px);
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: #323232;
+    color: #fff;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  .toast.error { background: var(--hb-danger); }
+
+  /* Editor */
+  .editor { display: flex; flex-direction: column; gap: 16px; padding: 8px 0; }
+  .editor .field { display: flex; flex-direction: column; gap: 6px; }
+  .editor .field > span { font-size: 0.8125rem; color: var(--hb-muted); }
+  .editor .field small { font-size: 0.75rem; color: var(--hb-muted); }
+  .editor input[type='text'], .editor select {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--hb-fg);
+    background: var(--hb-sunken);
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .editor .toggle { display: flex; align-items: center; gap: 12px; font-size: 0.9375rem; cursor: pointer; }
+  .editor .toggle input { flex: 0 0 auto; width: 20px; height: 20px; margin: 0; accent-color: var(--hb-accent); }
+`;
+
+/* ------------------------------------------------------------------ *
+ * DOM helpers
+ * ------------------------------------------------------------------ */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+const ICONS = {
+  check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
+  plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
+  sync: 'M12 4V1L8 5l4 4V6a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z',
+  image:
+    'M21 3H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3l4.5-6 3 4L14 13l7 6z',
+  task: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z',
+  trash:
+    'M9 3v1H4v2h1v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm2 5h2v10h-2V8zm-4 0h2v10H7V8zm8 0h2v10h-2V8z',
+};
+
+function icon(name) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', ICONS[name] || '');
+  svg.appendChild(path);
+  return svg;
+}
+
+function el(tag, options = {}, ...children) {
+  const node = document.createElement(tag);
+  const { class: className, text, on, ...attrs } = options;
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  for (const [key, value] of Object.entries(attrs)) {
+    if (value === undefined || value === null || value === false) continue;
+    node.setAttribute(key, value === true ? '' : String(value));
+  }
+  for (const [event, handler] of Object.entries(on || {})) {
+    node.addEventListener(event, handler);
+  }
+  node.append(...children.filter(Boolean));
+  return node;
+}
+
+function iconButton(name, label, onClick, extraClass = '') {
+  return el(
+    'button',
+    {
+      class: `icon-btn ${extraClass}`.trim(),
+      title: label,
+      'aria-label': label,
+      on: { click: onClick },
+    },
+    icon(name),
+  );
+}
+
+function openDialog(root, { title, build, buttons }) {
+  const backdrop = el('div', { class: 'backdrop' });
+  const dialog = el('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' });
+  const content = el('div', { class: 'content' });
+  const actions = el('div', { class: 'actions' });
+
+  const close = () => {
+    document.removeEventListener('keydown', onKey);
+    backdrop.remove();
+  };
+  const onKey = (event) => {
+    if (event.key === 'Escape') close();
+  };
+
+  backdrop.addEventListener('click', (event) => {
+    if (event.target === backdrop) close();
+  });
+  document.addEventListener('keydown', onKey);
+
+  dialog.append(el('h3', { text: title }), content, actions);
+  backdrop.appendChild(dialog);
+  build(content, close);
+
+  for (const { label, primary, start, onClick } of buttons) {
+    const button = el('button', {
+      class: primary ? 'btn primary' : 'btn',
+      text: label,
+      on: { click: () => onClick(close) },
+    });
+    if (start) button.style.marginInlineEnd = 'auto';
+    actions.appendChild(button);
+  }
+
+  root.appendChild(backdrop);
+  content.querySelector('input[type="text"]')?.focus();
+  return close;
+}
+
+function confirmDialog(root, t, { title, message }) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result, close) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+      close();
+    };
+    openDialog(root, {
+      title,
+      build: (content) => content.appendChild(el('p', { class: 'hint', text: message })),
+      buttons: [
+        { label: t.cancel, onClick: (close) => finish(false, close) },
+        { label: t.delete, primary: true, onClick: (close) => finish(true, close) },
+      ],
+    });
+  });
+}
+
+function toast(root, message, isError = false) {
+  root.querySelector('.toast')?.remove();
+  const node = el('div', { class: isError ? 'toast error' : 'toast', text: message });
+  root.appendChild(node);
+  setTimeout(() => node.remove(), isError ? 5000 : 3000);
+}
+
+/* ------------------------------------------------------------------ *
+ * The card
+ * ------------------------------------------------------------------ */
+
+const DEFAULT_CONFIG = {
+  title: null,
+  language: null,
+  list: null,
+  show_completed: true,
+  group_by_store: true,
+};
+
+const STATUS_DONE = 'completed';
+const STATUS_OPEN = 'needs_action';
+
+class HomeBasketListsCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = { ...DEFAULT_CONFIG };
+    this._lists = [];
+    this._selected = null;
+    this._photos = new Map();
+    this._loadingPhotos = new Set();
+    this._busy = false;
+    this._unsubscribe = null;
+    this._rendered = false;
+  }
+
+  static getConfigElement() {
+    return document.createElement('homebasket-lists-card-editor');
+  }
+
+  static getStubConfig() {
+    return { type: 'custom:homebasket-lists-card' };
+  }
+
+  setConfig(config) {
+    this._config = { ...DEFAULT_CONFIG, ...config };
+    if (this._rendered) this._render();
+  }
+
+  getCardSize() {
+    return 8;
+  }
+
+  get _t() {
+    return stringsFor(this._config.language || this._hass?.locale?.language);
+  }
+
+  set hass(hass) {
+    const first = !this._hass;
+    this._hass = hass;
+    if (first) {
+      this._build();
+      this._connect();
+    }
+  }
+
+  connectedCallback() {
+    if (this._hass && !this._unsubscribe) this._connect();
+  }
+
+  disconnectedCallback() {
+    this._unsubscribe?.then((off) => off());
+    this._unsubscribe = null;
+  }
+
+  /* ---------------- Backend ---------------- */
+
+  async _call(type, payload = {}) {
+    return this._hass.connection.sendMessagePromise({ type, ...payload });
+  }
+
+  async _connect() {
+    await this._refresh();
+    this._unsubscribe = this._hass.connection.subscribeEvents(
+      () => this._refresh(),
+      'homebasket_lists_updated',
+    );
+  }
+
+  async _refresh() {
+    try {
+      const { lists } = await this._call('homebasket_lists/lists');
+      this._lists = lists || [];
+      this._error = null;
+
+      // Keep the chosen list if it is still there, otherwise fall back.
+      const wanted = this._config.list;
+      const match = wanted
+        ? this._lists.find(
+            (board) => board.entry_id === wanted || board.name === wanted,
+          )
+        : null;
+      const current = this._lists.find((board) => board.entry_id === this._selected);
+      this._selected = (match || current || this._lists[0])?.entry_id || null;
+    } catch (err) {
+      this._error =
+        err?.code === 'unknown_command' ? this._t.notSetUp : err?.message || this._t.noAnswer;
+    }
+    this._render();
+  }
+
+  get _board() {
+    return this._lists.find((board) => board.entry_id === this._selected) || null;
+  }
+
+  /* ---------------- Actions ---------------- */
+
+  async _addItem(summary) {
+    const text = (summary || '').trim();
+    if (!text || !this._board || this._busy) return;
+
+    this._busy = true;
+    this._input.disabled = true;
+    try {
+      await this._call('homebasket_lists/item/add', {
+        entry_id: this._board.entry_id,
+        summary: text,
+      });
+      this._input.value = '';
+    } catch (err) {
+      toast(this.shadowRoot, err.message || this._t.noAnswer, true);
+    } finally {
+      this._busy = false;
+      this._input.disabled = false;
+      await this._refresh();
+      this._input.focus();
+    }
+  }
+
+  async _toggle(item) {
+    try {
+      await this._call('homebasket_lists/item/update', {
+        entry_id: this._board.entry_id,
+        uid: item.uid,
+        status: item.status === STATUS_DONE ? STATUS_OPEN : STATUS_DONE,
+      });
+    } catch (err) {
+      toast(this.shadowRoot, err.message || this._t.noAnswer, true);
+    }
+    await this._refresh();
+  }
+
+  async _remove(item) {
+    const t = this._t;
+    const confirmed = await confirmDialog(this.shadowRoot, t, {
+      title: t.deleteTitle,
+      message: t.deleteMessage(item.summary),
+    });
+    if (!confirmed) return;
+    try {
+      await this._call('homebasket_lists/item/remove', {
+        entry_id: this._board.entry_id,
+        uid: item.uid,
+      });
+    } catch (err) {
+      toast(this.shadowRoot, err.message || this._t.noAnswer, true);
+    }
+    await this._refresh();
+  }
+
+  async _sync() {
+    const t = this._t;
+    toast(this.shadowRoot, t.syncing);
+    try {
+      await this._call('homebasket_lists/sync', { entry_id: this._board.entry_id });
+      toast(this.shadowRoot, t.synced);
+    } catch (err) {
+      toast(this.shadowRoot, err.message || t.noAnswer, true);
+    }
+    await this._refresh();
+  }
+
+  /** Fetch a product photo held by HomeBasket and hand it to an <img>. */
+  _fillPhoto(code, image) {
+    if (this._photos.has(code)) {
+      image.src = this._photos.get(code);
+      image.hidden = false;
+      return;
+    }
+    if (this._loadingPhotos.has(code)) return;
+
+    this._loadingPhotos.add(code);
+    this._call('homebasket_lists/product/photo', { code })
+      .then(({ photo }) => {
+        if (!photo) return;
+        this._photos.set(code, photo);
+        image.src = photo;
+        image.hidden = false;
+      })
+      .catch(() => {})
+      .finally(() => this._loadingPhotos.delete(code));
+  }
+
+  /* ---------------- Names ---------------- */
+
+  _storeName(entityId) {
+    if (!entityId) return null;
+    return this._hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+  }
+
+  _typeName(type) {
+    if (!type) return null;
+    return this._t.types[type] || type;
+  }
+
+  /* ---------------- The item sheet ---------------- */
+
+  async _openItem(item) {
+    const t = this._t;
+    const board = this._board;
+
+    const saved = await new Promise((resolve) => {
+      let settled = false;
+      const fields = {};
+      const finish = (value, close) => {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+        close();
+      };
+
+      openDialog(this.shadowRoot, {
+        title: t.edit,
+        build: (content) => {
+          if (item.product) {
+            const thumb = el('div', { class: 'thumb' });
+            const image = el('img', { alt: '', hidden: true });
+            thumb.append(image, icon('image'));
+            if (item.product.has_photo) this._fillPhoto(item.product.code, image);
+            else if (item.product.image) {
+              image.src = item.product.image;
+              image.hidden = false;
+            }
+            content.appendChild(
+              el(
+                'div',
+                { class: 'product-note' },
+                thumb,
+                el(
+                  'div',
+                  {},
+                  el('div', { text: item.product.name }),
+                  el('div', { class: 'hint', text: t.openProduct }),
+                ),
+              ),
+            );
+          }
+
+          content.appendChild(el('label', { text: t.name }));
+          fields.summary = el('input', { type: 'text', value: item.summary || '' });
+          content.appendChild(fields.summary);
+
+          content.appendChild(el('label', { text: t.quantity }));
+          fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
+          content.appendChild(fields.quantity);
+
+          content.appendChild(el('label', { text: t.type }));
+          fields.type = el('select');
+          fields.type.appendChild(el('option', { value: '', text: t.noType }));
+          for (const name of board.item_types || []) {
+            fields.type.appendChild(
+              el('option', { value: name, text: this._typeName(name) }),
+            );
+          }
+          fields.type.value = item.type || '';
+          content.appendChild(fields.type);
+
+          content.appendChild(el('label', { text: t.store }));
+          fields.store = el('select');
+          fields.store.appendChild(el('option', { value: '', text: t.anywhere }));
+          for (const zone of board.stores || []) {
+            fields.store.appendChild(
+              el('option', { value: zone, text: this._storeName(zone) }),
+            );
+          }
+          fields.store.value = item.store || '';
+          content.appendChild(fields.store);
+
+          content.appendChild(el('label', { text: t.note }));
+          fields.note = el('textarea');
+          fields.note.value = item.note || '';
+          content.appendChild(fields.note);
+        },
+        buttons: [
+          {
+            label: t.delete,
+            start: true,
+            onClick: (close) => finish({ remove: true }, close),
+          },
+          { label: t.cancel, onClick: (close) => finish(null, close) },
+          {
+            label: t.save,
+            primary: true,
+            onClick: (close) =>
+              finish(
+                {
+                  summary: fields.summary.value.trim(),
+                  quantity: fields.quantity.value.trim() || null,
+                  type: fields.type.value || null,
+                  store: fields.store.value || null,
+                  note: fields.note.value.trim() || null,
+                },
+                close,
+              ),
+          },
+        ],
+      });
+    });
+
+    if (!saved) return;
+    if (saved.remove) {
+      await this._remove(item);
+      return;
+    }
+    if (!saved.summary) return;
+
+    try {
+      await this._call('homebasket_lists/item/update', {
+        entry_id: board.entry_id,
+        uid: item.uid,
+        ...saved,
+      });
+    } catch (err) {
+      toast(this.shadowRoot, err.message || t.noAnswer, true);
+    }
+    await this._refresh();
+  }
+
+  /* ---------------- Rendering ---------------- */
+
+  _build() {
+    const style = document.createElement('style');
+    style.textContent = STYLES;
+
+    this._title = el('h2');
+    this._count = el('span', { class: 'pill' });
+    this._syncButton = iconButton('sync', this._t.sync, () => this._sync());
+    this._tabs = el('div', { class: 'tabs' });
+    this._body = el('div', { class: 'body' });
+
+    this._input = el('input', { type: 'text', autocomplete: 'off' });
+    this._input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') this._addItem(event.target.value);
+    });
+    this._addButton = el(
+      'button',
+      {
+        class: 'btn primary',
+        title: this._t.add,
+        'aria-label': this._t.add,
+        on: { click: () => this._addItem(this._input.value) },
+      },
+      icon('plus'),
+    );
+    this._addRow = el('div', { class: 'add-row' }, this._input, this._addButton);
+
+    this._card = el(
+      'div',
+      { class: 'card' },
+      el(
+        'header',
+        {},
+        this._title,
+        el('div', { class: 'right' }, this._count, this._syncButton),
+      ),
+      this._tabs,
+      this._body,
+    );
+
+    this.shadowRoot.append(style, this._card);
+    this._rendered = true;
+    this._render();
+  }
+
+  _render() {
+    if (!this._rendered) return;
+    const t = this._t;
+    const board = this._board;
+
+    this._title.textContent = this._config.title || board?.name || t.title;
+    this._input.placeholder = t.addPlaceholder;
+    this._syncButton.title = t.sync;
+    this._body.replaceChildren();
+    this._tabs.replaceChildren();
+
+    if (this._error) {
+      this._count.hidden = true;
+      this._syncButton.hidden = true;
+      this._body.appendChild(
+        el(
+          'div',
+          { class: 'empty' },
+          el('p', { text: this._error }),
+          el('button', { class: 'btn', text: t.tryAgain, on: { click: () => this._refresh() } }),
+        ),
+      );
+      return;
+    }
+
+    if (!board) {
+      this._count.hidden = true;
+      this._syncButton.hidden = true;
+      this._body.appendChild(el('div', { class: 'empty' }, el('p', { text: t.noLists })));
+      return;
+    }
+
+    // Tabs, only when there is a choice to make.
+    if (this._lists.length > 1 && !this._config.list) {
+      for (const entry of this._lists) {
+        this._tabs.appendChild(
+          el('button', {
+            class: 'tab',
+            role: 'tab',
+            'aria-selected': String(entry.entry_id === board.entry_id),
+            text: entry.name,
+            on: {
+              click: () => {
+                this._selected = entry.entry_id;
+                this._render();
+              },
+            },
+          }),
+        );
+      }
+    }
+
+    const open = board.items.filter((item) => item.status !== STATUS_DONE);
+    const done = board.items.filter((item) => item.status === STATUS_DONE);
+
+    this._count.hidden = false;
+    this._count.textContent = t.itemsLeft(open.length);
+    this._syncButton.hidden = !board.linked_lists?.length;
+
+    this._body.appendChild(this._addRow);
+
+    if (!board.items.length) {
+      this._body.appendChild(el('div', { class: 'empty' }, el('p', { text: t.empty })));
+      return;
+    }
+
+    if (this._config.group_by_store && board.stores?.length) {
+      const groups = new Map();
+      for (const item of open) {
+        const key = item.store || '';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      }
+      // Shops first, then the items that can be bought anywhere.
+      const keys = [...groups.keys()].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : 0));
+      for (const key of keys) {
+        if (keys.length > 1) {
+          this._body.appendChild(
+            el('div', { class: 'group-title' }, el('span', { text: this._storeName(key) || t.anywhere })),
+          );
+        }
+        // The shop is already the heading, so repeating it on every row is noise.
+        this._body.appendChild(
+          this._renderItems(groups.get(key), t, { hideStore: keys.length > 1 }),
+        );
+      }
+    } else if (open.length) {
+      this._body.appendChild(this._renderItems(open, t));
+    }
+
+    if (done.length && this._config.show_completed) {
+      this._body.appendChild(
+        el('div', { class: 'group-title' }, el('span', { text: t.doneCount(done.length) })),
+      );
+      this._body.appendChild(this._renderItems(done, t));
+    }
+  }
+
+  _renderItems(items, t, options = {}) {
+    const list = el('div', { class: 'items' });
+    for (const item of items) list.appendChild(this._renderItem(item, t, options));
+    return list;
+  }
+
+  _renderItem(item, t, { hideStore = false } = {}) {
+    const isDone = item.status === STATUS_DONE;
+
+    const tick = el(
+      'button',
+      {
+        class: 'tick',
+        role: 'button',
+        'aria-pressed': String(isDone),
+        'aria-label': item.summary,
+        on: { click: () => this._toggle(item) },
+      },
+      icon('check'),
+    );
+
+    const thumb = el('div', { class: 'thumb' });
+    const image = el('img', { alt: '', loading: 'lazy', hidden: true });
+    thumb.append(image, icon(item.type === 'task' ? 'task' : 'image'));
+    if (item.product?.has_photo) this._fillPhoto(item.product.code, image);
+    else if (item.product?.image) {
+      image.src = item.product.image;
+      image.hidden = false;
+      image.addEventListener('error', () => {
+        image.hidden = true;
+      });
+    }
+
+    const meta = el('div', { class: 'meta' });
+    if (item.quantity) meta.appendChild(el('span', { class: 'chip qty', text: item.quantity }));
+    if (item.store && !hideStore) {
+      meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
+    }
+    if (item.type) meta.appendChild(el('span', { class: 'chip', text: this._typeName(item.type) }));
+    if (item.product?.category) {
+      meta.appendChild(el('span', { class: 'chip', text: item.product.category }));
+    }
+
+    return el(
+      'div',
+      { class: isDone ? 'item done' : 'item' },
+      tick,
+      thumb,
+      el(
+        'div',
+        {
+          class: 'who',
+          role: 'button',
+          tabindex: '0',
+          on: {
+            click: () => this._openItem(item),
+            keydown: (event) => {
+              if (event.key === 'Enter' || event.key === ' ') this._openItem(item);
+            },
+          },
+        },
+        el('div', { class: 'name', text: item.summary }),
+        meta.children.length ? meta : null,
+      ),
+      iconButton('trash', t.delete, () => this._remove(item), 'danger'),
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Visual editor
+ * ------------------------------------------------------------------ */
+
+const EDITOR_FIELDS = [
+  { key: 'title', label: 'Title', type: 'text', hint: 'Leave empty to use the list name.' },
+  {
+    key: 'list',
+    label: 'List',
+    type: 'text',
+    hint: 'Name or entry id of one list. Empty shows a tab per list.',
+  },
+  {
+    key: 'language',
+    label: 'Language',
+    type: 'text',
+    hint: 'bg or en. Empty follows the Home Assistant language.',
+  },
+  { key: 'group_by_store', label: 'Group by shop', type: 'boolean' },
+  { key: 'show_completed', label: 'Show completed items', type: 'boolean' },
+];
+
+class HomeBasketListsCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = { ...DEFAULT_CONFIG };
+  }
+
+  setConfig(config) {
+    this._config = { ...DEFAULT_CONFIG, ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+  }
+
+  _update(key, value) {
+    this._config = { ...this._config, [key]: value };
+    this.dispatchEvent(
+      new CustomEvent('config-changed', {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  _render() {
+    const style = document.createElement('style');
+    style.textContent = STYLES;
+
+    const content = el('div', { class: 'editor' });
+    for (const field of EDITOR_FIELDS) {
+      const value = this._config[field.key];
+
+      if (field.type === 'boolean') {
+        const input = el('input', { type: 'checkbox' });
+        input.checked = Boolean(value);
+        input.addEventListener('change', () => this._update(field.key, input.checked));
+        content.appendChild(
+          el('label', { class: 'toggle' }, input, el('span', { text: field.label })),
+        );
+        continue;
+      }
+
+      const input = el('input', { type: 'text', value: value ?? '' });
+      input.addEventListener('change', () =>
+        this._update(field.key, input.value.trim() || null),
+      );
+      content.appendChild(
+        el(
+          'label',
+          { class: 'field' },
+          el('span', { text: field.label }),
+          input,
+          field.hint ? el('small', { text: field.hint }) : null,
+        ),
+      );
+    }
+
+    this.shadowRoot.replaceChildren(style, content);
+  }
+}
+
+customElements.define('homebasket-lists-card', HomeBasketListsCard);
+customElements.define('homebasket-lists-card-editor', HomeBasketListsCardEditor);
+
+window.customCards = window.customCards || [];
+window.customCards.push({
+  type: 'homebasket-lists-card',
+  name: 'HomeBasket Lists',
+  preview: false,
+  description: 'Shopping lists that stay in step with the built-in to-do lists.',
+  documentationURL: 'https://github.com/ivan1mihaylov/HomeBasket-Lists',
+});
+
+console.info(
+  `%c HOMEBASKET-LISTS-CARD %c ${VERSION} `,
+  'color:#fff;background:#03a9f4;font-weight:700',
+  'color:#03a9f4;background:#fff',
+);
