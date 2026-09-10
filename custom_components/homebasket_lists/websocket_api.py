@@ -144,6 +144,12 @@ async def websocket_add_item(
     ):
         fields["product_code"] = product["code"]
 
+    # A shop Open Food Facts names, when it is one of this list's own, saves
+    # setting it by hand. Anything the caller passed wins.
+    if not fields.get("store"):
+        if (guess := await runtime.async_guess_store(fields.get("product_code"))) is not None:
+            fields["store"] = guess
+
     item = await runtime.store.async_add(summary=msg["summary"], **fields)
     await runtime.async_changed()
     connection.send_result(msg["id"], {"item": item})

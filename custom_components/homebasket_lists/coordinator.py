@@ -68,6 +68,47 @@ class ListRuntime:
         await self.sync.async_unload()
 
     # ------------------------------------------------------------------
+    # Shops
+    # ------------------------------------------------------------------
+    def zone_name(self, entity_id: str) -> str:
+        """Return what a zone is called, for matching and for display."""
+        if (state := self.hass.states.get(entity_id)) is not None:
+            if friendly := state.attributes.get("friendly_name"):
+                return str(friendly)
+        return entity_id.split(".", 1)[-1].replace("_", " ")
+
+    async def async_guess_store(self, product_code: str | None) -> str | None:
+        """Return the shop Open Food Facts says sells this product.
+
+        Only the zones configured as shops for this list are considered, so a
+        product sold in fifty places still picks the one you actually visit.
+        Returns None when nothing matches, leaving the shop for the user.
+        """
+        zones = self.stores
+        if not product_code or not zones:
+            return None
+
+        details = await self.products.async_details(product_code)
+        listed = [
+            name.casefold()
+            for name in (details or {}).get("stores") or []
+            if isinstance(name, str) and name.strip()
+        ]
+        if not listed:
+            return None
+
+        for zone in zones:
+            name = self.zone_name(zone).casefold().strip()
+            if not name:
+                continue
+            for shop in listed:
+                # A short name matching as a substring would catch anything,
+                # so only names with something to them are matched loosely.
+                if name == shop or (len(name) > 2 and (name in shop or shop in name)):
+                    return zone
+        return None
+
+    # ------------------------------------------------------------------
     # Changes
     # ------------------------------------------------------------------
     async def async_changed(self) -> None:

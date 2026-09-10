@@ -460,6 +460,19 @@ const STYLES = `
     padding: 11px 13px;
     margin-bottom: 14px;
   }
+
+  /* The chevron is ours, so it sits beside the text instead of against the
+     far edge, and looks the same on every platform. */
+  .dialog select,
+  .editor select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%239b9b9b'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 22px 22px;
+    padding-inline-end: 38px;
+  }
   .dialog textarea { min-height: 74px; resize: vertical; }
   .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
   .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
@@ -477,13 +490,19 @@ const STYLES = `
     line-height: 1;
   }
   .stepper .step:hover { border-color: var(--hb-accent); color: var(--hb-accent); }
-  .stepper input[type='number'] {
+  /* Scoped through .dialog so these beat the standalone field rules, which
+     would otherwise keep their bottom margin and knock the row out of line. */
+  .dialog .stepper input[type='number'] {
     flex: 1 1 auto;
     min-width: 0;
     margin-bottom: 0;
     text-align: center;
   }
-  .stepper input[type='text'] { flex: 1 1 40%; min-width: 0; margin-bottom: 0; }
+  .dialog .stepper input[type='text'] {
+    flex: 1 1 40%;
+    min-width: 0;
+    margin-bottom: 0;
+  }
 
   /* The same idea on a list row, as text rather than a badge. */
   .amount { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; }
@@ -503,9 +522,9 @@ const STYLES = `
   .amount .value { font-variant-numeric: tabular-nums; font-weight: 600; }
   .amount .unit { color: var(--hb-muted); }
 
-  .dialog .duration { display: flex; gap: 8px; margin-bottom: 14px; }
-  .dialog .duration input { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
-  .dialog .duration select { flex: 0 0 auto; width: 40%; margin-bottom: 0; }
+  .dialog .duration { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .dialog .duration input[type='number'] { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
+  .dialog .duration select { flex: 0 0 auto; width: 42%; margin-bottom: 0; }
   .dialog input[type='number'] {
     width: 100%;
     box-sizing: border-box;

@@ -208,6 +208,11 @@ def _async_register_services(hass: HomeAssistant) -> None:
         ):
             fields[ATTR_PRODUCT_CODE] = product["code"]
 
+        if not fields.get(ATTR_STORE):
+            guess = await runtime.async_guess_store(fields.get(ATTR_PRODUCT_CODE))
+            if guess is not None:
+                fields[ATTR_STORE] = guess
+
         item = await runtime.store.async_add(summary=summary, **fields)
         await runtime.async_changed()
         return {"item": item}
