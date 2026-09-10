@@ -16,15 +16,32 @@ from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION
 
 _REGISTERED = f"{DOMAIN}_ws_registered"
 
+# An item's kind travels as `item_type`, not `type`. The WebSocket protocol
+# names the command in a key called `type`, and voluptuous markers compare by
+# their string, so a field of that name silently replaces the command name and
+# the command can never be reached.
 ITEM_FIELDS = {
     vol.Optional("summary"): str,
     vol.Optional("status"): vol.In([STATUS_NEEDS_ACTION, STATUS_COMPLETED]),
-    vol.Optional("type"): vol.Any(str, None),
+    vol.Optional("item_type"): vol.Any(str, None),
     vol.Optional("store"): vol.Any(str, None),
     vol.Optional("quantity"): vol.Any(str, None),
     vol.Optional("note"): vol.Any(str, None),
+    vol.Optional("due"): vol.Any(str, None),
     vol.Optional("product_code"): vol.Any(str, None),
 }
+
+# Wire name -> stored name.
+FIELD_NAMES = {"item_type": "type"}
+
+
+def _item_fields(msg: dict[str, Any], *, skip: tuple[str, ...] = ()) -> dict[str, Any]:
+    """Return the item fields a message actually carried."""
+    return {
+        FIELD_NAMES.get(key, key): msg[key]
+        for key in ITEM_FIELDS
+        if key in msg and key not in skip
+    }
 
 
 def _runtime(hass: HomeAssistant, entry_id: str) -> ListRuntime:
@@ -77,6 +94,7 @@ def async_register(hass: HomeAssistant) -> None:
         websocket_move_item,
         websocket_sync,
         websocket_photo,
+        websocket_product_details,
     ):
         ws.async_register_command(hass, handler)
 
@@ -107,7 +125,7 @@ async def websocket_add_item(
 ) -> None:
     """Add an item to a list."""
     runtime = _runtime(hass, msg["entry_id"])
-    fields = {key: msg[key] for key in ITEM_FIELDS if key in msg and key != "summary"}
+    fields = _item_fields(msg, skip=("summary",))
 
     if "product_code" not in fields and (
         product := runtime.products.match(msg["summary"])
@@ -133,8 +151,7 @@ async def websocket_update_item(
 ) -> None:
     """Change an item."""
     runtime = _runtime(hass, msg["entry_id"])
-    fields = {key: msg[key] for key in ITEM_FIELDS if key in msg}
-    item = await runtime.store.async_update(msg["uid"], **fields)
+    item = await runtime.store.async_update(msg["uid"], **_item_fields(msg))
     if item is None:
         connection.send_error(msg["id"], "not_found", "No such item")
         return
@@ -214,3 +231,22 @@ async def websocket_photo(
         return
     photo = await runtimes[0].products.async_photo(msg["code"])
     connection.send_result(msg["id"], {"photo": photo})
+
+
+@ws.websocket_command(
+    {vol.Required("type"): f"{DOMAIN}/product/details", vol.Required("code"): str}
+)
+@ws.async_response
+async def websocket_product_details(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return what HomeBasket knows about a product, for the item sheet.
+
+    This reads HomeBasket's cache; it does not go out to Open Food Facts.
+    """
+    runtimes = list(hass.data.get(DOMAIN, {}).values())
+    if not runtimes:
+        connection.send_result(msg["id"], {"details": None})
+        return
+    details = await runtimes[0].products.async_details(msg["code"])
+    connection.send_result(msg["id"], {"details": details})

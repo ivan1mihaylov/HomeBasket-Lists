@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.1.2';
+const VERSION = '0.2.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -48,8 +48,41 @@ const TRANSLATIONS = {
     synced: 'Lists are in step',
     linkedTo: (n) => `Linked to ${n} list${n === 1 ? '' : 's'}`,
     product: 'Product',
-    openProduct: 'Known to HomeBasket',
+    openProduct: 'Known to HomeBasket — tap for details',
+    due: 'Due',
     types: { product: 'Product', task: 'Task' },
+    details: 'Product details',
+    loading: 'Loading…',
+    noDetails: 'HomeBasket has nothing more on this product.',
+    close: 'Close',
+    openOnOff: 'Open Food Facts page',
+    sectionNutrition: 'Nutrition, per 100 g',
+    sectionIngredients: 'Ingredients',
+    sectionAbout: 'About',
+    fieldBrand: 'Brand',
+    fieldQuantity: 'Quantity',
+    fieldCategories: 'Categories',
+    fieldLabels: 'Labels',
+    fieldAllergens: 'Allergens',
+    fieldPackaging: 'Packaging',
+    fieldOrigins: 'Origin',
+    fieldStores: 'Shops',
+    fieldCountries: 'Sold in',
+    fieldBarcodes: 'Barcodes',
+    nutriScore: 'Nutri-Score',
+    novaGroup: 'NOVA',
+    ecoScore: 'Eco-Score',
+    novaExplained: { 1: 'Unprocessed', 2: 'Culinary ingredient', 3: 'Processed', 4: 'Ultra-processed' },
+    nutriments: {
+      'energy-kcal': 'Energy',
+      fat: 'Fat',
+      'saturated-fat': 'of which saturates',
+      carbohydrates: 'Carbohydrates',
+      sugars: 'of which sugars',
+      fiber: 'Fibre',
+      proteins: 'Protein',
+      salt: 'Salt',
+    },
   },
   bg: {
     title: 'Списъци',
@@ -83,8 +116,41 @@ const TRANSLATIONS = {
     synced: 'Списъците са изравнени',
     linkedTo: (n) => `Свързан с ${n} ${n === 1 ? 'списък' : 'списъка'}`,
     product: 'Продукт',
-    openProduct: 'Познат на HomeBasket',
+    openProduct: 'Познат на HomeBasket — натисни за информация',
+    due: 'Срок',
     types: { product: 'Продукт', task: 'Задача' },
+    details: 'Информация за продукта',
+    loading: 'Зареждане…',
+    noDetails: 'HomeBasket няма повече информация за този продукт.',
+    close: 'Затвори',
+    openOnOff: 'Страница в Open Food Facts',
+    sectionNutrition: 'Хранителни стойности, на 100 г',
+    sectionIngredients: 'Съставки',
+    sectionAbout: 'За продукта',
+    fieldBrand: 'Марка',
+    fieldQuantity: 'Количество',
+    fieldCategories: 'Категории',
+    fieldLabels: 'Етикети',
+    fieldAllergens: 'Алергени',
+    fieldPackaging: 'Опаковка',
+    fieldOrigins: 'Произход',
+    fieldStores: 'Магазини',
+    fieldCountries: 'Продава се в',
+    fieldBarcodes: 'Баркодове',
+    nutriScore: 'Nutri-Score',
+    novaGroup: 'NOVA',
+    ecoScore: 'Eco-Score',
+    novaExplained: { 1: 'Непреработена', 2: 'Кулинарна съставка', 3: 'Преработена', 4: 'Ултрапреработена' },
+    nutriments: {
+      'energy-kcal': 'Енергийна стойност',
+      fat: 'Мазнини',
+      'saturated-fat': 'от които наситени',
+      carbohydrates: 'Въглехидрати',
+      sugars: 'от които захари',
+      fiber: 'Влакнини',
+      proteins: 'Белтъчини',
+      salt: 'Сол',
+    },
   },
 };
 
@@ -314,17 +380,110 @@ const STYLES = `
   .dialog textarea { min-height: 74px; resize: vertical; }
   .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
   .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
+  .dialog input[type='date'] {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--hb-fg);
+    background: var(--hb-sunken);
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    padding: 11px 13px;
+    margin-bottom: 14px;
+  }
   .dialog .product-note {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
     padding: 10px 12px;
     margin-bottom: 14px;
+    border: 1px solid var(--hb-line);
     border-radius: 12px;
     background: var(--hb-sunken);
     font-size: 0.8125rem;
+    text-align: start;
+    cursor: pointer;
   }
+  .dialog .product-note:hover { border-color: var(--hb-accent); }
   .dialog .product-note .thumb { width: 36px; height: 36px; border-radius: 9px; }
+  .dialog .product-note .who { flex: 1 1 auto; min-width: 0; }
+  .dialog .product-note .who div:first-child { font-weight: 600; overflow-wrap: anywhere; }
+  .dialog .product-note .chevron { flex: 0 0 auto; color: var(--hb-muted); font-size: 1.1rem; }
+
+  /* Product details */
+  .dialog.wide { width: min(560px, 100%); }
+  .details h4 {
+    margin: 18px 0 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hb-muted);
+  }
+  .details p { margin: 0; font-size: 0.875rem; line-height: 1.5; }
+  .details-head { display: flex; gap: 14px; margin-bottom: 16px; }
+  .details-head .shot {
+    flex: 0 0 auto;
+    width: 88px;
+    height: 88px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--hb-sunken);
+    display: grid;
+    place-items: center;
+  }
+  .details-head .shot img { width: 100%; height: 100%; object-fit: contain; }
+  .details-head .shot svg { width: 26px; height: 26px; fill: var(--hb-muted); }
+  .details-head .who { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .details-head .who .name { font-size: 1.05rem; font-weight: 600; line-height: 1.25; }
+  .details-head .who .sub { font-size: 0.8125rem; color: var(--hb-muted); }
+
+  .grades { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+  .grade { display: flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border-radius: 12px; background: var(--hb-sunken); }
+  .grade .letter {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+  }
+  .grade .letter.a { background: #038141; }
+  .grade .letter.b { background: #85bb2f; color: #10240b; }
+  .grade .letter.c { background: #fecb02; color: #3b2f00; }
+  .grade .letter.d { background: #ee8100; }
+  .grade .letter.e { background: #e63e11; }
+  .grade .letter.n1 { background: #00a24d; }
+  .grade .letter.n2 { background: #ffc832; color: #3b2f00; }
+  .grade .letter.n3 { background: #ff8714; }
+  .grade .letter.n4 { background: #e63e11; }
+  .grade .meaning { display: flex; flex-direction: column; line-height: 1.2; }
+  .grade .meaning b { font-size: 0.75rem; font-weight: 600; }
+  .grade .meaning span { font-size: 0.6875rem; color: var(--hb-muted); }
+
+  .facts { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .facts td { padding: 7px 0; border-bottom: 1px solid var(--hb-line); }
+  .facts tr:last-child td { border-bottom: none; }
+  .facts td + td { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .facts .indent { padding-inline-start: 14px; color: var(--hb-muted); }
+
+  .about { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 0.875rem; }
+  .about dt { color: var(--hb-muted); }
+  .about dd { margin: 0; overflow-wrap: anywhere; }
+
+  .details .source {
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--hb-line);
+    font-size: 0.75rem;
+  }
+  .details .source a { color: var(--hb-accent); }
 
   .toast {
     position: fixed;
@@ -405,6 +564,20 @@ function el(tag, options = {}, ...children) {
   return node;
 }
 
+function gradeBadge(tone, letter, label, meaning) {
+  return el(
+    'div',
+    { class: 'grade' },
+    el('span', { class: `letter ${tone}`, text: letter }),
+    el(
+      'span',
+      { class: 'meaning' },
+      el('b', { text: label }),
+      meaning ? el('span', { text: meaning }) : null,
+    ),
+  );
+}
+
 function iconButton(name, label, onClick, extraClass = '') {
   return el(
     'button',
@@ -418,9 +591,13 @@ function iconButton(name, label, onClick, extraClass = '') {
   );
 }
 
-function openDialog(root, { title, build, buttons }) {
+function openDialog(root, { title, build, buttons, wide }) {
   const backdrop = el('div', { class: 'backdrop' });
-  const dialog = el('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' });
+  const dialog = el('div', {
+    class: wide ? 'dialog wide' : 'dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+  });
   const content = el('div', { class: 'content' });
   const actions = el('div', { class: 'actions' });
 
@@ -497,6 +674,11 @@ const DEFAULT_CONFIG = {
 
 const STATUS_DONE = 'completed';
 const STATUS_OPEN = 'needs_action';
+
+// Everything that is not a task is something you buy, including any type of
+// your own, so only a task loses the shop and the quantity.
+const TYPE_TASK = 'task';
+const isTask = (type) => type === TYPE_TASK;
 
 class HomeBasketListsCard extends HTMLElement {
   constructor() {
@@ -700,6 +882,7 @@ class HomeBasketListsCard extends HTMLElement {
     const saved = await new Promise((resolve) => {
       let settled = false;
       const fields = {};
+      let type = item.type || '';
       const finish = (value, close) => {
         if (settled) return;
         settled = true;
@@ -710,6 +893,7 @@ class HomeBasketListsCard extends HTMLElement {
       openDialog(this.shadowRoot, {
         title: t.edit,
         build: (content) => {
+          // What HomeBasket knows, if anything. Tapping it opens the rest.
           if (item.product) {
             const thumb = el('div', { class: 'thumb' });
             const image = el('img', { alt: '', hidden: true });
@@ -721,15 +905,19 @@ class HomeBasketListsCard extends HTMLElement {
             }
             content.appendChild(
               el(
-                'div',
-                { class: 'product-note' },
+                'button',
+                {
+                  class: 'product-note',
+                  on: { click: () => this._openProductDetails(item.product) },
+                },
                 thumb,
                 el(
                   'div',
-                  {},
+                  { class: 'who' },
                   el('div', { text: item.product.name }),
                   el('div', { class: 'hint', text: t.openProduct }),
                 ),
+                el('span', { class: 'chevron', text: '›' }),
               ),
             );
           }
@@ -737,10 +925,6 @@ class HomeBasketListsCard extends HTMLElement {
           content.appendChild(el('label', { text: t.name }));
           fields.summary = el('input', { type: 'text', value: item.summary || '' });
           content.appendChild(fields.summary);
-
-          content.appendChild(el('label', { text: t.quantity }));
-          fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
-          content.appendChild(fields.quantity);
 
           content.appendChild(el('label', { text: t.type }));
           fields.type = el('select');
@@ -750,19 +934,50 @@ class HomeBasketListsCard extends HTMLElement {
               el('option', { value: name, text: this._typeName(name) }),
             );
           }
-          fields.type.value = item.type || '';
+          fields.type.value = type;
           content.appendChild(fields.type);
 
-          content.appendChild(el('label', { text: t.store }));
-          fields.store = el('select');
-          fields.store.appendChild(el('option', { value: '', text: t.anywhere }));
-          for (const zone of board.stores || []) {
-            fields.store.appendChild(
-              el('option', { value: zone, text: this._storeName(zone) }),
-            );
-          }
-          fields.store.value = item.store || '';
-          content.appendChild(fields.store);
+          // A product is bought somewhere, in some amount; a task is due.
+          const perType = el('div');
+          content.appendChild(perType);
+
+          const drawPerType = () => {
+            perType.replaceChildren();
+
+            if (isTask(type)) {
+              perType.appendChild(el('label', { text: t.due }));
+              fields.due = el('input', {
+                type: 'date',
+                value: (item.due || '').slice(0, 10),
+              });
+              perType.appendChild(fields.due);
+              fields.quantity = null;
+              fields.store = null;
+              return;
+            }
+
+            perType.appendChild(el('label', { text: t.quantity }));
+            fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
+            perType.appendChild(fields.quantity);
+
+            perType.appendChild(el('label', { text: t.store }));
+            fields.store = el('select');
+            fields.store.appendChild(el('option', { value: '', text: t.anywhere }));
+            for (const zone of board.stores || []) {
+              fields.store.appendChild(
+                el('option', { value: zone, text: this._storeName(zone) }),
+              );
+            }
+            fields.store.value = item.store || '';
+            perType.appendChild(fields.store);
+            fields.due = null;
+          };
+
+          fields.type.addEventListener('change', () => {
+            type = fields.type.value;
+            drawPerType();
+          });
+          drawPerType();
 
           content.appendChild(el('label', { text: t.note }));
           fields.note = el('textarea');
@@ -783,10 +998,13 @@ class HomeBasketListsCard extends HTMLElement {
               finish(
                 {
                   summary: fields.summary.value.trim(),
-                  quantity: fields.quantity.value.trim() || null,
-                  type: fields.type.value || null,
-                  store: fields.store.value || null,
+                  item_type: fields.type.value || null,
                   note: fields.note.value.trim() || null,
+                  // The fields the other type does not have are cleared, so a
+                  // product turned into a task does not keep a stale shop.
+                  quantity: fields.quantity ? fields.quantity.value.trim() || null : null,
+                  store: fields.store ? fields.store.value || null : null,
+                  due: fields.due ? fields.due.value || null : null,
                 },
                 close,
               ),
@@ -812,6 +1030,142 @@ class HomeBasketListsCard extends HTMLElement {
       toast(this.shadowRoot, err.message || t.noAnswer, true);
     }
     await this._refresh();
+  }
+
+  /* ---------------- Product details ---------------- */
+
+  /**
+   * Everything HomeBasket holds on a product.
+   *
+   * It reads HomeBasket's cache through the integration, so opening this costs
+   * no network request.
+   */
+  async _openProductDetails(product) {
+    const t = this._t;
+    let body;
+
+    openDialog(this.shadowRoot, {
+      title: t.details,
+      wide: true,
+      build: (content) => {
+        body = el('div', { class: 'details' });
+        body.appendChild(el('div', { class: 'empty', text: t.loading }));
+        content.appendChild(body);
+
+        this._call('homebasket_lists/product/details', { code: product.code })
+          .then(({ details }) => {
+            body.replaceChildren(
+              details
+                ? this._renderDetails(details, product, t)
+                : el('div', { class: 'empty' }, el('p', { text: t.noDetails })),
+            );
+          })
+          .catch((err) => {
+            body.replaceChildren(
+              el('div', { class: 'empty' }, el('p', { text: err.message || t.noAnswer })),
+            );
+          });
+      },
+      buttons: [{ label: t.close, primary: true, onClick: (close) => close() }],
+    });
+  }
+
+  _renderDetails(details, product, t) {
+    const fragment = document.createDocumentFragment();
+
+    const shot = el('div', { class: 'shot' });
+    const picture = details.images?.front || details.image || product.image;
+    shot.appendChild(
+      picture ? el('img', { src: picture, alt: '', loading: 'lazy' }) : icon('image'),
+    );
+    fragment.appendChild(
+      el(
+        'div',
+        { class: 'details-head' },
+        shot,
+        el(
+          'div',
+          { class: 'who' },
+          el('div', { class: 'name', text: product.name || details.label }),
+          details.generic_name && details.generic_name !== details.name
+            ? el('div', { class: 'sub', text: details.generic_name })
+            : null,
+          el('div', { class: 'sub', text: (product.codes || [details.code]).join(', ') }),
+        ),
+      ),
+    );
+
+    const grades = el('div', { class: 'grades' });
+    const { nutriscore, nova, ecoscore } = details.grades || {};
+    if (nutriscore) grades.appendChild(gradeBadge(nutriscore, nutriscore, t.nutriScore));
+    if (nova) {
+      grades.appendChild(gradeBadge(`n${nova}`, String(nova), t.novaGroup, t.novaExplained[nova]));
+    }
+    if (ecoscore) grades.appendChild(gradeBadge(ecoscore, ecoscore, t.ecoScore));
+    if (grades.children.length) fragment.appendChild(grades);
+
+    if (details.nutriments?.length) {
+      const table = el('table', { class: 'facts' });
+      const SUB_ROWS = ['saturated-fat', 'sugars'];
+      for (const row of details.nutriments) {
+        table.appendChild(
+          el(
+            'tr',
+            {},
+            el('td', {
+              class: SUB_ROWS.includes(row.key) ? 'indent' : '',
+              text: t.nutriments[row.key] || row.label,
+            }),
+            el('td', { text: `${row.value} ${row.unit}` }),
+          ),
+        );
+      }
+      fragment.append(el('h4', { text: t.sectionNutrition }), table);
+    }
+
+    if (details.ingredients) {
+      fragment.append(
+        el('h4', { text: t.sectionIngredients }),
+        el('p', { text: details.ingredients }),
+      );
+    }
+
+    const rows = [
+      [t.fieldBrand, details.brands?.join(', ') || details.brand],
+      [t.fieldQuantity, details.quantity],
+      [t.fieldCategories, details.categories?.join(' · ')],
+      [t.fieldLabels, details.labels?.join(', ')],
+      [t.fieldAllergens, details.allergens?.join(', ')],
+      [t.fieldPackaging, details.packaging],
+      [t.fieldOrigins, details.origins],
+      [t.fieldStores, details.stores?.join(', ')],
+      [t.fieldCountries, details.countries?.join(', ')],
+    ].filter(([, value]) => value);
+
+    if (rows.length) {
+      const list = el('dl', { class: 'about' });
+      for (const [label, value] of rows) {
+        list.append(el('dt', { text: label }), el('dd', { text: value }));
+      }
+      fragment.append(el('h4', { text: t.sectionAbout }), list);
+    }
+
+    if (details.url) {
+      fragment.appendChild(
+        el(
+          'div',
+          { class: 'source' },
+          el('a', {
+            href: details.url,
+            target: '_blank',
+            rel: 'noopener noreferrer',
+            text: t.openOnOff,
+          }),
+        ),
+      );
+    }
+
+    return fragment;
   }
 
   /* ---------------- Rendering ---------------- */
@@ -929,7 +1283,7 @@ class HomeBasketListsCard extends HTMLElement {
     if (this._config.group_by_store && board.stores?.length) {
       const groups = new Map();
       for (const item of open) {
-        const key = item.store || '';
+        const key = isTask(item.type) ? '' : item.store || '';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       }
@@ -993,8 +1347,13 @@ class HomeBasketListsCard extends HTMLElement {
 
     const meta = el('div', { class: 'meta' });
     if (item.quantity) meta.appendChild(el('span', { class: 'chip qty', text: item.quantity }));
-    if (item.store && !hideStore) {
+    if (item.store && !hideStore && !isTask(item.type)) {
       meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
+    }
+    if (isTask(item.type) && item.due) {
+      meta.appendChild(
+        el('span', { class: 'chip qty', text: `${t.due}: ${item.due.slice(0, 10)}` }),
+      );
     }
     if (item.type) meta.appendChild(el('span', { class: 'chip', text: this._typeName(item.type) }));
     if (item.product?.category) {
