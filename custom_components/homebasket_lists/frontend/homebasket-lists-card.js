@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.5.0';
+const VERSION = '0.5.1';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -35,6 +35,7 @@ const TRANSLATIONS = {
     quantity: 'Quantity',
     unit: 'Unit',
     unitHint: 'Free text — pieces, kg, litres, whatever fits.',
+    defaultUnit: 'pcs',
     less: 'One less',
     more: 'One more',
     suggestionsHint: 'Not on the list — tap to add',
@@ -118,6 +119,7 @@ const TRANSLATIONS = {
     quantity: 'Количество',
     unit: 'Мерна единица',
     unitHint: 'Свободен текст — бр., кг, литра, каквото пасва.',
+    defaultUnit: 'бр.',
     less: 'С едно по-малко',
     more: 'С едно повече',
     suggestionsHint: 'Не са в списъка — натисни, за да добавиш',
@@ -931,6 +933,11 @@ class HomeBasketListsCard extends HTMLElement {
       await this._call('homebasket_lists/item/add', {
         entry_id: this._board.entry_id,
         summary: text,
+        // A line added here is something to buy, one of, unless the caller
+        // says otherwise. Change it in the item sheet.
+        item_type: TYPE_PRODUCT,
+        quantity: 1,
+        unit: this._t.defaultUnit,
         ...extra,
       });
       this._input.value = '';
