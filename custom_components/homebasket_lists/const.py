@@ -20,6 +20,14 @@ CONF_STORES: Final = "stores"
 CONF_ITEM_TYPES: Final = "item_types"
 CONF_LINK_PRODUCTS: Final = "link_products"
 
+# Reminding you what to buy when you reach a shop.
+CONF_NOTIFY_ARRIVAL: Final = "notify_arrival"
+CONF_NOTIFY_WATCH: Final = "notify_watch"
+CONF_NOTIFY_DWELL: Final = "notify_dwell"
+CONF_NOTIFY_UNASSIGNED: Final = "notify_unassigned"
+CONF_NOTIFY_COOLDOWN: Final = "notify_cooldown"
+CONF_NOTIFY_SERVICE: Final = "notify_service"
+
 # An item is a product, a task, or neither. "Neither" is stored as no type at
 # all and carries only a name and a note.
 TYPE_PRODUCT: Final = "product"
@@ -27,6 +35,16 @@ TYPE_TASK: Final = "task"
 ITEM_TYPES: Final = [TYPE_PRODUCT, TYPE_TASK]
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 DEFAULT_LINK_PRODUCTS: Final = True
+
+# Off until asked for: a notification nobody expected is worse than none.
+DEFAULT_NOTIFY_ARRIVAL: Final = False
+# Minutes in the shop before it is worth saying anything. Long enough not to
+# fire while driving past, short enough to reach you at the door.
+DEFAULT_NOTIFY_DWELL: Final = 2.0
+# Items with no shop can be bought anywhere, so they belong on every reminder.
+DEFAULT_NOTIFY_UNASSIGNED: Final = True
+# One reminder per shop per two hours, however many times you walk back in.
+DEFAULT_NOTIFY_COOLDOWN: Final = 120.0
 
 # Item fields we keep beyond what a to-do item can hold
 ATTR_UID: Final = "uid"
@@ -48,6 +66,7 @@ DURATION_UNITS: Final = ["minutes", "hours", "days"]
 
 # Events
 EVENT_UPDATED: Final = "homebasket_lists_updated"
+EVENT_ARRIVAL: Final = "homebasket_lists_arrival"
 SIGNAL_UPDATED: Final = "homebasket_lists_updated_signal"
 
 # Services

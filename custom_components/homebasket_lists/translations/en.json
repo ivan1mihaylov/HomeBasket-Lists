@@ -3,17 +3,31 @@
     "step": {
       "user": {
         "title": "New list",
-        "description": "Lists appear as normal to-do entities, so voice assistants and the built-in panel can use them.",
+        "description": "A list lives in this integration and on its own card. Voice assistants reach it through Assist, and it can mirror the built-in to-do lists in both directions.",
         "data": {
           "name": "List name",
           "linked_lists": "Keep in sync with",
           "stores": "Shops",
-          "link_products": "Recognise HomeBasket products"
+          "item_types": "Kinds of item",
+          "link_products": "Recognise HomeBasket products",
+          "notify_arrival": "Remind me at the shop",
+          "notify_watch": "Who to follow",
+          "notify_dwell": "Stay in the shop for",
+          "notify_cooldown": "Then stay quiet for",
+          "notify_unassigned": "Include items with no shop",
+          "notify_service": "Notify service to fall back on"
         },
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
           "stores": "Zones that are shops. An item can be assigned one; items without a shop can be bought anywhere.",
-          "link_products": "Match item names against HomeBasket so the card can show pictures and details."
+          "item_types": "Pick both to let each item decide. Pick one and everything on this list becomes that, however it arrives - from the card, an action, a voice assistant or a linked list.",
+          "link_products": "Match item names against HomeBasket so the card can show pictures and details.",
+          "notify_arrival": "Notify the phone that reported the arrival when you reach one of the shops above and something on this list is still open.",
+          "notify_watch": "The people or device trackers to follow. Leave empty for everyone in the house.",
+          "notify_dwell": "How long you must stay before the reminder is sent, so driving past a shop says nothing.",
+          "notify_cooldown": "How long the same shop waits before reminding the same person again.",
+          "notify_unassigned": "Items that can be bought anywhere go on every shop's reminder.",
+          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel."
         }
       }
     },
@@ -31,8 +45,35 @@
         "data": {
           "linked_lists": "Keep in sync with",
           "stores": "Shops",
-          "link_products": "Recognise HomeBasket products"
+          "item_types": "Kinds of item",
+          "link_products": "Recognise HomeBasket products",
+          "notify_arrival": "Remind me at the shop",
+          "notify_watch": "Who to follow",
+          "notify_dwell": "Stay in the shop for",
+          "notify_cooldown": "Then stay quiet for",
+          "notify_unassigned": "Include items with no shop",
+          "notify_service": "Notify service to fall back on"
+        },
+        "data_description": {
+          "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
+          "stores": "Zones that are shops. An item can be assigned one; items without a shop can be bought anywhere.",
+          "item_types": "Pick both to let each item decide. Pick one and everything on this list becomes that, however it arrives - from the card, an action, a voice assistant or a linked list.",
+          "link_products": "Match item names against HomeBasket so the card can show pictures and details.",
+          "notify_arrival": "Notify the phone that reported the arrival when you reach one of the shops above and something on this list is still open.",
+          "notify_watch": "The people or device trackers to follow. Leave empty for everyone in the house.",
+          "notify_dwell": "How long you must stay before the reminder is sent, so driving past a shop says nothing.",
+          "notify_cooldown": "How long the same shop waits before reminding the same person again.",
+          "notify_unassigned": "Items that can be bought anywhere go on every shop's reminder.",
+          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel."
         }
+      }
+    }
+  },
+  "selector": {
+    "item_types": {
+      "options": {
+        "product": "Products",
+        "task": "Tasks"
       }
     }
   },

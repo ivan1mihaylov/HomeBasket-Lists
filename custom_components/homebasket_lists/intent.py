@@ -153,11 +153,7 @@ class AddItemIntent(_ListIntent):
             response.async_set_speech(_words(language, "no_list"))
             return response
 
-        product = runtime.products.match(summary)
-        await runtime.store.async_add(
-            summary=summary, product_code=product["code"] if product else None
-        )
-        await runtime.async_changed()
+        await runtime.async_add_item(summary)
         response.async_set_speech(
             _words(language, "added", item=summary, list=runtime.name)
         )

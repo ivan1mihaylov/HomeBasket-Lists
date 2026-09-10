@@ -16,7 +16,10 @@ from pathlib import Path
 # --- Home Assistant stubs, before importing the integration ----------------
 for name in (
     "homeassistant",
+    "homeassistant.const",
     "homeassistant.core",
+    "homeassistant.helpers.device_registry",
+    "homeassistant.helpers.entity_registry",
     "homeassistant.helpers",
     "homeassistant.helpers.dispatcher",
     "homeassistant.helpers.storage",
@@ -25,6 +28,16 @@ for name in (
     "homeassistant.util",
 ):
     sys.modules.setdefault(name, types.ModuleType(name))
+
+const = sys.modules["homeassistant.const"]
+const.EVENT_HOMEASSISTANT_STARTED = "homeassistant_started"
+const.STATE_HOME = "home"
+const.STATE_NOT_HOME = "not_home"
+const.STATE_UNAVAILABLE = "unavailable"
+const.STATE_UNKNOWN = "unknown"
+
+sys.modules["homeassistant.helpers.entity_registry"].async_get = lambda hass: None
+sys.modules["homeassistant.helpers.device_registry"].async_get = lambda hass: None
 
 sys.modules["homeassistant.core"].HomeAssistant = object
 sys.modules["homeassistant.core"].Event = object
@@ -39,7 +52,11 @@ sys.modules["homeassistant.helpers.event"].async_track_state_change_event = (
 sys.modules["homeassistant.helpers.event"].async_track_time_interval = (
     lambda *a, **k: (lambda: None)
 )
+sys.modules["homeassistant.helpers.event"].async_call_later = (
+    lambda *a, **k: (lambda: None)
+)
 sys.modules["homeassistant.util"].dt = types.SimpleNamespace(utcnow=lambda: None)
+sys.modules["homeassistant.util"].slugify = lambda text: str(text).lower()
 
 
 class _Store:

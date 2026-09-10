@@ -29,6 +29,7 @@ from homeassistant.helpers.event import (
 )
 
 from .const import CONF_LINK_PRODUCTS, CONF_LINKED_LISTS, DEFAULT_LINK_PRODUCTS
+from .options import apply_type
 from .products import ProductLink
 from .store import (
     STATUS_COMPLETED,
@@ -195,10 +196,18 @@ class ListSync:
                 if previous is not None:
                     continue
 
+                # A list fixed to one kind gives it to what it adopts too, so
+                # a line from a plain to-do list arrives as a task or a
+                # product rather than as neither.
                 await self.store.async_add(
-                    summary=summary,
-                    status=item["status"],
-                    product_code=self._match_product(summary),
+                    **apply_type(
+                        self.entry,
+                        {
+                            "summary": summary,
+                            "status": item["status"],
+                            "product_code": self._match_product(summary),
+                        },
+                    )
                 )
                 changed = True
                 continue

@@ -8,7 +8,9 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
-from .const import CONF_STORES, EVENT_UPDATED, ITEM_TYPES, SIGNAL_UPDATED
+from .arrivals import ArrivalWatcher
+from .const import CONF_STORES, EVENT_UPDATED, SIGNAL_UPDATED
+from .options import allowed_types, apply_type, forced_type
 from .products import ProductLink
 from .store import ListStore
 from .sync import ListSync
@@ -24,6 +26,7 @@ class ListRuntime:
         self.store = ListStore(hass, entry.entry_id)
         self.products = ProductLink(hass)
         self.sync = ListSync(hass, entry, self.store, self.products)
+        self.arrivals = ArrivalWatcher(hass, self)
 
     # ------------------------------------------------------------------
     # Configuration
@@ -46,8 +49,13 @@ class ListRuntime:
 
     @property
     def item_types(self) -> list[str]:
-        """Return the types an item may have, besides having none."""
-        return list(ITEM_TYPES)
+        """Return the kinds an item on this list may have."""
+        return allowed_types(self.entry)
+
+    @property
+    def forced_type(self) -> str | None:
+        """Return the kind this list gives every item, or None when it is free."""
+        return forced_type(self.entry)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -56,6 +64,8 @@ class ListRuntime:
         """Load the list and start watching the linked ones."""
         await self.store.async_load()
         await self.sync.async_setup(self.async_notify)
+        await self.arrivals.async_setup()
+        await self.async_enforce_types()
 
     async def async_start(self) -> None:
         """Do the first sync, once the entity exists."""
@@ -66,6 +76,60 @@ class ListRuntime:
     async def async_unload(self) -> None:
         """Stop watching."""
         await self.sync.async_unload()
+        await self.arrivals.async_unload()
+
+    # ------------------------------------------------------------------
+    # Items
+    # ------------------------------------------------------------------
+    async def async_add_item(self, summary: str, **fields: Any) -> dict[str, Any]:
+        """Add an item, the way every way in should.
+
+        The card, an action, a voice assistant and a linked list all end up
+        here, so a product is recognised, a shop is guessed and the list's own
+        kind is applied exactly once, wherever the item came from.
+        """
+        if not fields.get("product_code") and (product := self.products.match(summary)):
+            fields["product_code"] = product["code"]
+
+        if not fields.get("store"):
+            guess = await self.async_guess_store(fields.get("product_code"))
+            if guess is not None:
+                fields["store"] = guess
+
+        fields = apply_type(self.entry, fields)
+        item = await self.store.async_add(summary=summary, **fields)
+        await self.async_changed()
+        return item
+
+    async def async_update_item(self, uid: str, **fields: Any) -> dict[str, Any] | None:
+        """Change an item, keeping the kind the list requires."""
+        if "type" in fields:
+            fields = apply_type(self.entry, fields)
+        item = await self.store.async_update(uid, **fields)
+        if item is None:
+            return None
+        await self.async_changed()
+        return item
+
+    async def async_enforce_types(self) -> int:
+        """Give every item the kind the list requires. Returns how many changed.
+
+        Run at startup, which is also after the settings change, so switching a
+        list to tasks only turns what is already on it into tasks rather than
+        leaving a mixture behind.
+        """
+        wanted = apply_type(self.entry, {})
+        if "type" not in wanted:
+            return 0
+
+        changed = 0
+        for item in list(self.store.items):
+            if item.get("type") != wanted["type"]:
+                await self.store.async_update(item["uid"], type=wanted["type"])
+                changed += 1
+        if changed:
+            self.async_notify()
+        return changed
 
     # ------------------------------------------------------------------
     # Shops

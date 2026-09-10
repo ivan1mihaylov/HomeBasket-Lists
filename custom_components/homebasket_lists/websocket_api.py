@@ -137,21 +137,9 @@ async def websocket_add_item(
 ) -> None:
     """Add an item to a list."""
     runtime = _runtime(hass, msg["entry_id"])
-    fields = _item_fields(msg, skip=("summary",))
-
-    if "product_code" not in fields and (
-        product := runtime.products.match(msg["summary"])
-    ):
-        fields["product_code"] = product["code"]
-
-    # A shop Open Food Facts names, when it is one of this list's own, saves
-    # setting it by hand. Anything the caller passed wins.
-    if not fields.get("store"):
-        if (guess := await runtime.async_guess_store(fields.get("product_code"))) is not None:
-            fields["store"] = guess
-
-    item = await runtime.store.async_add(summary=msg["summary"], **fields)
-    await runtime.async_changed()
+    item = await runtime.async_add_item(
+        msg["summary"], **_item_fields(msg, skip=("summary",))
+    )
     connection.send_result(msg["id"], {"item": item})
 
 
@@ -169,7 +157,7 @@ async def websocket_update_item(
 ) -> None:
     """Change an item."""
     runtime = _runtime(hass, msg["entry_id"])
-    item = await runtime.store.async_update(msg["uid"], **_item_fields(msg))
+    item = await runtime.async_update_item(msg["uid"], **_item_fields(msg))
     if item is None:
         connection.send_error(msg["id"], "not_found", "No such item")
         return

@@ -202,28 +202,15 @@ def _async_register_services(hass: HomeAssistant) -> None:
         runtime = _one(hass, call.data.get(ATTR_LIST))
         fields = _fields(call, *SETTABLE)
 
-        summary = call.data[ATTR_SUMMARY]
-        if ATTR_PRODUCT_CODE not in fields and (
-            product := runtime.products.match(summary)
-        ):
-            fields[ATTR_PRODUCT_CODE] = product["code"]
-
-        if not fields.get(ATTR_STORE):
-            guess = await runtime.async_guess_store(fields.get(ATTR_PRODUCT_CODE))
-            if guess is not None:
-                fields[ATTR_STORE] = guess
-
-        item = await runtime.store.async_add(summary=summary, **fields)
-        await runtime.async_changed()
+        item = await runtime.async_add_item(call.data[ATTR_SUMMARY], **fields)
         return {"item": item}
 
     async def async_update_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))
         fields = _fields(call, ATTR_SUMMARY, ATTR_STATUS, *SETTABLE)
-        item = await runtime.store.async_update(call.data[ATTR_UID], **fields)
+        item = await runtime.async_update_item(call.data[ATTR_UID], **fields)
         if item is None:
             raise HomeAssistantError(f"No item {call.data[ATTR_UID]}")
-        await runtime.async_changed()
         return {"item": item}
 
     async def async_remove_item(call: ServiceCall) -> ServiceResponse:

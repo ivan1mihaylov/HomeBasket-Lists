@@ -20,18 +20,51 @@ from homeassistant.core import callback
 from homeassistant.helpers.selector import (
     EntitySelector,
     EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
     TextSelector,
     TextSelectorConfig,
 )
 
 from .const import (
+    CONF_ITEM_TYPES,
     CONF_LINK_PRODUCTS,
     CONF_LINKED_LISTS,
     CONF_NAME,
+    CONF_NOTIFY_ARRIVAL,
+    CONF_NOTIFY_COOLDOWN,
+    CONF_NOTIFY_DWELL,
+    CONF_NOTIFY_SERVICE,
+    CONF_NOTIFY_UNASSIGNED,
+    CONF_NOTIFY_WATCH,
     CONF_STORES,
+    DEFAULT_ITEM_TYPES,
     DEFAULT_LINK_PRODUCTS,
+    DEFAULT_NOTIFY_ARRIVAL,
+    DEFAULT_NOTIFY_COOLDOWN,
+    DEFAULT_NOTIFY_DWELL,
+    DEFAULT_NOTIFY_UNASSIGNED,
     DOMAIN,
+    ITEM_TYPES,
 )
+
+
+def _minutes(maximum: float) -> NumberSelector:
+    """Return a field for a number of minutes."""
+    return NumberSelector(
+        NumberSelectorConfig(
+            min=0,
+            max=maximum,
+            step=1,
+            mode=NumberSelectorMode.BOX,
+            unit_of_measurement="min",
+        )
+    )
 
 
 def _settings(defaults: dict[str, Any]) -> dict:
@@ -44,9 +77,45 @@ def _settings(defaults: dict[str, Any]) -> dict:
             CONF_STORES, default=defaults.get(CONF_STORES, [])
         ): EntitySelector(EntitySelectorConfig(domain="zone", multiple=True)),
         vol.Optional(
+            CONF_ITEM_TYPES, default=defaults.get(CONF_ITEM_TYPES, DEFAULT_ITEM_TYPES)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=kind, label=kind) for kind in ITEM_TYPES
+                ],
+                multiple=True,
+                mode=SelectSelectorMode.LIST,
+                translation_key=CONF_ITEM_TYPES,
+            )
+        ),
+        vol.Optional(
             CONF_LINK_PRODUCTS,
             default=defaults.get(CONF_LINK_PRODUCTS, DEFAULT_LINK_PRODUCTS),
         ): bool,
+        vol.Optional(
+            CONF_NOTIFY_ARRIVAL,
+            default=defaults.get(CONF_NOTIFY_ARRIVAL, DEFAULT_NOTIFY_ARRIVAL),
+        ): bool,
+        vol.Optional(
+            CONF_NOTIFY_WATCH, default=defaults.get(CONF_NOTIFY_WATCH, [])
+        ): EntitySelector(
+            EntitySelectorConfig(domain=["person", "device_tracker"], multiple=True)
+        ),
+        vol.Optional(
+            CONF_NOTIFY_DWELL,
+            default=defaults.get(CONF_NOTIFY_DWELL, DEFAULT_NOTIFY_DWELL),
+        ): _minutes(120),
+        vol.Optional(
+            CONF_NOTIFY_COOLDOWN,
+            default=defaults.get(CONF_NOTIFY_COOLDOWN, DEFAULT_NOTIFY_COOLDOWN),
+        ): _minutes(1440),
+        vol.Optional(
+            CONF_NOTIFY_UNASSIGNED,
+            default=defaults.get(CONF_NOTIFY_UNASSIGNED, DEFAULT_NOTIFY_UNASSIGNED),
+        ): bool,
+        vol.Optional(
+            CONF_NOTIFY_SERVICE, default=defaults.get(CONF_NOTIFY_SERVICE, "")
+        ): TextSelector(TextSelectorConfig()),
     }
 
 

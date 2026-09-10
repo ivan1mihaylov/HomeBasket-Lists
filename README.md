@@ -40,7 +40,22 @@ another. Each list has:
 | --- | --- |
 | **Keep in sync with** | Built-in to-do lists this one mirrors, in both directions. Any number of them. |
 | **Shops** | Zones that count as shops. An item can be assigned one. |
+| **Kinds of item** | Which kinds this list allows. Both lets each item decide; one makes the whole list that kind. |
 | **Recognise HomeBasket products** | Match item names against HomeBasket, so the card can show pictures and categories. |
+| **Remind me at the shop** | Notify the phone that reported the arrival when someone reaches one of the shops. |
+| **Who to follow** | The people or device trackers watched for arrivals. Empty means everyone in the house. |
+| **Stay in the shop for** | Minutes before the reminder is sent, so driving past says nothing. |
+| **Then stay quiet for** | Minutes before the same shop may remind the same person again. |
+| **Include items with no shop** | Put what can be bought anywhere on every shop's reminder. |
+| **Notify service to fall back on** | Used when the arriving device has no app of its own. |
+
+### One kind of item
+
+A list set to **Tasks** only turns everything that lands on it into a task, and
+one set to **Products** only into a product — whether it came from the card, an
+action, a voice assistant or a linked to-do list. Changing the setting also
+converts what is already on the list, and the card stops showing the kind
+field, since there is nothing left to choose.
 
 ## How the sync works
 
@@ -90,9 +105,27 @@ carry no product.
 A shop is a zone. Assign one to an item and it belongs to that shop; leave it
 empty and the item can be bought anywhere.
 
+### Being reminded at the shop
+
+Turn **Remind me at the shop** on and the list does it by itself. When a
+watched person reaches one of its shops and stays there for the configured
+time, the phone that reported the arrival gets a notification with what is
+still open for that shop — plus everything with no shop, since that can be
+bought anywhere. Leaving before the time is up cancels it, so driving past a
+shop says nothing, and each shop stays quiet for the cooldown afterwards.
+
+The phone is found from the person's `source` tracker and its device, which is
+the `notify.mobile_app_*` service of the app that reported the arrival. When
+there is no such service the fallback setting is used, and when that is empty
+too the reminder is left in the notifications panel.
+
+Every reminder also fires `homebasket_lists_arrival`, with the list, the zone,
+who arrived and what is open, so an automation can do something else with it.
+
+### Doing it yourself
+
 `homebasket_lists.get_items` with a `store` returns what to buy there —
-**including the items with no shop**, since those can be bought anywhere. That
-is what a reminder automation needs:
+**including the items with no shop**, since those can be bought anywhere:
 
 ```yaml
 automation:
@@ -177,14 +210,18 @@ type: custom:homebasket-lists-card
 
 ## Development
 
-The sync engine has a test that runs without Home Assistant:
+The parts that are hard to try by hand have tests that run without Home
+Assistant:
 
 ```bash
-python3 tests/test_sync.py
+python3 tests/test_sync.py      # the two-way sync
+python3 tests/test_stores.py    # guessing a shop from Open Food Facts
+python3 tests/test_arrivals.py  # shop reminders and fixed item kinds
 ```
 
-It stands a fake to-do list up and walks an item through adding, ticking and
-deleting from both sides.
+The first stands a fake to-do list up and walks an item through adding, ticking
+and deleting from both sides. The last walks someone into a shop, out of it
+again, and back in.
 
 ## License
 

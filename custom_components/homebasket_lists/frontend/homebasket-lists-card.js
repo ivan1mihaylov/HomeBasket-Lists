@@ -949,14 +949,15 @@ class HomeBasketListsCard extends HTMLElement {
     this._input.disabled = true;
     this._clearSuggestions();
     try {
+      // A line added here is something to buy, one of, unless the list is
+      // fixed to another kind or the caller says otherwise.
+      const fixed = this._fixedType();
+      const kind = fixed === null ? TYPE_PRODUCT : fixed;
       await this._call('homebasket_lists/item/add', {
         entry_id: this._board.entry_id,
         summary: text,
-        // A line added here is something to buy, one of, unless the caller
-        // says otherwise. Change it in the item sheet.
-        item_type: TYPE_PRODUCT,
-        quantity: 1,
-        unit: this._t.defaultUnit,
+        item_type: kind || null,
+        ...(isProduct(kind) ? { quantity: 1, unit: this._t.defaultUnit } : {}),
         ...extra,
       });
       this._input.value = '';
@@ -1070,10 +1071,7 @@ class HomeBasketListsCard extends HTMLElement {
 
   _pickSuggestion(product) {
     if (!product) return;
-    this._addItem(product.name, {
-      product_code: product.code,
-      item_type: TYPE_PRODUCT,
-    });
+    this._addItem(product.name, { product_code: product.code });
   }
 
   _renderSuggestions() {
@@ -1213,6 +1211,26 @@ class HomeBasketListsCard extends HTMLElement {
     return this._t.types[type || ''] ?? type;
   }
 
+  /** The kinds this list allows. Both, unless its settings say otherwise. */
+  _allowedTypes() {
+    const kinds = TYPES.slice(1);
+    const allowed = this._board?.item_types;
+    if (!Array.isArray(allowed)) return kinds;
+    return kinds.filter((kind) => allowed.includes(kind));
+  }
+
+  /**
+   * The kind every item on this list must have, or null when each item
+   * decides for itself. A list fixed to one kind does not show the field at
+   * all - the integration would only set it back.
+   */
+  _fixedType() {
+    const allowed = this._allowedTypes();
+    if (allowed.length === 1) return allowed[0];
+    if (!allowed.length) return '';
+    return null;
+  }
+
   /** "30 min", "2 h" - what a task takes, in the unit it was given in. */
   _durationLabel(item) {
     if (!item.duration) return null;
@@ -1273,15 +1291,23 @@ class HomeBasketListsCard extends HTMLElement {
           fields.summary = el('input', { type: 'text', value: item.summary || '' });
           content.appendChild(fields.summary);
 
-          content.appendChild(el('label', { text: t.type }));
-          fields.type = el('select');
-          for (const name of TYPES) {
-            fields.type.appendChild(
-              el('option', { value: name, text: this._typeName(name) }),
-            );
+          const fixed = this._fixedType();
+          if (fixed === null) {
+            content.appendChild(el('label', { text: t.type }));
+            fields.type = el('select');
+            for (const name of TYPES) {
+              fields.type.appendChild(
+                el('option', { value: name, text: this._typeName(name) }),
+              );
+            }
+            fields.type.value = type;
+            content.appendChild(fields.type);
+          } else {
+            // Nothing to choose: the list gives every item this kind, so the
+            // sheet shows the fields that kind needs and nothing else.
+            type = fixed;
+            fields.type = { value: fixed };
           }
-          fields.type.value = type;
-          content.appendChild(fields.type);
 
           const perType = el('div');
           content.appendChild(perType);
@@ -1385,7 +1411,7 @@ class HomeBasketListsCard extends HTMLElement {
             // With no type there is nothing here: just the name and the note.
           };
 
-          fields.type.addEventListener('change', () => {
+          fields.type.addEventListener?.('change', () => {
             type = fields.type.value;
             drawPerType();
           });
