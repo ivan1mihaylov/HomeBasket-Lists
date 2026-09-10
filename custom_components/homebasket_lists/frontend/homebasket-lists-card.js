@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.1.1';
+const VERSION = '0.1.2';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -1036,14 +1036,23 @@ const EDITOR_FIELDS = [
   {
     key: 'list',
     label: 'List',
-    type: 'text',
-    hint: 'Name or entry id of one list. Empty shows a tab per list.',
+    type: 'select',
+    hint: 'Which list to show. All of them means a tab each.',
+    // Filled in from the lists that actually exist.
+    options: (editor) => [
+      { value: '', label: 'All lists' },
+      ...editor.lists.map((board) => ({ value: board.entry_id, label: board.name })),
+    ],
   },
   {
     key: 'language',
     label: 'Language',
-    type: 'text',
-    hint: 'bg or en. Empty follows the Home Assistant language.',
+    type: 'select',
+    options: () => [
+      { value: '', label: "Home Assistant's language" },
+      { value: 'bg', label: 'Български' },
+      { value: 'en', label: 'English' },
+    ],
   },
   { key: 'group_by_store', label: 'Group by shop', type: 'boolean' },
   { key: 'show_completed', label: 'Show completed items', type: 'boolean' },
@@ -1054,6 +1063,11 @@ class HomeBasketListsCardEditor extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this._config = { ...DEFAULT_CONFIG };
+    this._lists = [];
+  }
+
+  get lists() {
+    return this._lists;
   }
 
   setConfig(config) {
@@ -1062,7 +1076,22 @@ class HomeBasketListsCardEditor extends HTMLElement {
   }
 
   set hass(hass) {
+    const first = !this._hass;
     this._hass = hass;
+    if (first) this._loadLists();
+  }
+
+  /** Read the lists once, so the picker offers the real ones. */
+  async _loadLists() {
+    try {
+      const { lists } = await this._hass.connection.sendMessagePromise({
+        type: 'homebasket_lists/lists',
+      });
+      this._lists = lists || [];
+    } catch {
+      this._lists = [];
+    }
+    this._render();
   }
 
   _update(key, value) {
@@ -1094,10 +1123,28 @@ class HomeBasketListsCardEditor extends HTMLElement {
         continue;
       }
 
-      const input = el('input', { type: 'text', value: value ?? '' });
-      input.addEventListener('change', () =>
-        this._update(field.key, input.value.trim() || null),
-      );
+      let input;
+      if (field.type === 'select') {
+        input = el('select');
+        const options = field.options(this);
+        for (const option of options) {
+          input.appendChild(el('option', { value: option.value, text: option.label }));
+        }
+        // A value saved earlier that no longer matches anything - a list that
+        // was removed, or a name from before this was a picker - is kept as an
+        // option of its own rather than silently swapped for another list.
+        if (value && !options.some((option) => option.value === value)) {
+          input.appendChild(el('option', { value, text: value }));
+        }
+        input.value = value ?? '';
+        input.addEventListener('change', () => this._update(field.key, input.value || null));
+      } else {
+        input = el('input', { type: 'text', value: value ?? '' });
+        input.addEventListener('change', () =>
+          this._update(field.key, input.value.trim() || null),
+        );
+      }
+
       content.appendChild(
         el(
           'label',

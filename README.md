@@ -164,7 +164,7 @@ type: custom:homebasket-lists-card
 | Option | Default | Description |
 | --- | --- | --- |
 | `title` | the list's name | Card heading. |
-| `list` | all | Name or entry id of one list. Empty shows a tab per list. |
+| `list` | all | One list, picked from those that exist. Empty shows a tab per list. |
 | `language` | Home Assistant's | `bg` or `en`. |
 | `group_by_store` | `true` | Group open items under their shop. |
 | `show_completed` | `true` | Show what is already ticked off. |
