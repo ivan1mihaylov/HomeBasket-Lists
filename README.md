@@ -5,10 +5,13 @@ lists, and know what HomeBasket knows about each product.
 
 <p><img src="docs/list.png" alt="The card" width="46%"></p>
 
-Each list is a normal `todo` entity, so voice assistants, the built-in To-do
-panel and every existing automation work with it exactly as they do with the
-lists Home Assistant ships. The extra information — shop, quantity, type,
-linked product — lives beside it and shows up in this integration's own card.
+The lists live in this integration, not as Home Assistant to-do entities, so
+they can hold what a to-do item cannot: a shop, a quantity, a type, a link to a
+HomeBasket product. They are still spoken to like the built-in lists, and they
+still stay in step with them.
+
+Each list gets one entity, `sensor.<list>_open_items`, counting what is left —
+handy for badges and zone automations.
 
 ## Installation
 
@@ -95,6 +98,7 @@ automation:
     actions:
       - action: homebasket_lists.get_items
         data:
+          list: Пазаруване
           store: zone.kaufland
           status: needs_action
         response_variable: shopping
@@ -107,6 +111,25 @@ automation:
             {{ shopping['items'] | map(attribute='summary') | join(', ') }}
 ```
 
+## Voice
+
+The lists are not to-do entities, so the built-in list phrases cannot reach
+them. The integration registers intents of its own instead, and writes the
+sentences for them into `custom_sentences/bg/` and `custom_sentences/en/`, which
+is where Assist looks for phrases a custom integration adds.
+
+| You say | What happens |
+| --- | --- |
+| *добави мляко в Пазаруване* / *add milk to Shopping* | The item is added, and linked to a HomeBasket product when the name matches. |
+| *отметни мляко от Пазаруване* / *check off milk from Shopping* | The item is ticked off, here and in every linked list. |
+| *какво има в Пазаруване* / *what is on Shopping* | Assist reads out what is left. |
+
+The list name can be left out when there is only one list. The files are
+rewritten when a list is added or renamed, and are left alone when nothing
+changed — so edits of your own survive until the names change. **Restart Home
+Assistant, or reload Assist, after adding a list**, since sentences are read at
+startup.
+
 ## Actions
 
 | Action | What it does |
@@ -117,7 +140,8 @@ automation:
 | `homebasket_lists.get_items` | Read items, filtered by shop, type or status. |
 | `homebasket_lists.sync_now` | Run a sync pass now. |
 
-The ordinary `todo.*` actions work too, since each list is a to-do entity.
+Every action takes a `list` — the list's name. Leave it out when there is only
+one list, or, where it makes sense, to act on all of them.
 
 ## Using it from another integration
 

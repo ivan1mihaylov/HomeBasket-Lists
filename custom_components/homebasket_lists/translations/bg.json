@@ -18,8 +18,12 @@
         }
       }
     },
-    "error": { "empty_name": "Дай име на списъка." },
-    "abort": { "already_configured": "Вече има списък с това име." }
+    "error": {
+      "empty_name": "Дай име на списъка."
+    },
+    "abort": {
+      "already_configured": "Вече има списък с това име."
+    }
   },
   "options": {
     "step": {
@@ -31,6 +35,13 @@
           "item_types": "Типове записи",
           "link_products": "Разпознавай продукти от HomeBasket"
         }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_items": {
+        "name": "Оставащи записи"
       }
     }
   }

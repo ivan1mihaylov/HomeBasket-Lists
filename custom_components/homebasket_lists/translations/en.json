@@ -18,8 +18,12 @@
         }
       }
     },
-    "error": { "empty_name": "Give the list a name." },
-    "abort": { "already_configured": "A list with this name already exists." }
+    "error": {
+      "empty_name": "Give the list a name."
+    },
+    "abort": {
+      "already_configured": "A list with this name already exists."
+    }
   },
   "options": {
     "step": {
@@ -31,6 +35,13 @@
           "item_types": "Item types",
           "link_products": "Recognise HomeBasket products"
         }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_items": {
+        "name": "Open items"
       }
     }
   }

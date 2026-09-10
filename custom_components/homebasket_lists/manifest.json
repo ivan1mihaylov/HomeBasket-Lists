@@ -1,10 +1,20 @@
 {
   "domain": "homebasket_lists",
   "name": "HomeBasket Lists",
-  "codeowners": ["@ivan1mihaylov"],
+  "codeowners": [
+    "@ivan1mihaylov"
+  ],
   "config_flow": true,
-  "dependencies": ["http", "frontend", "todo", "websocket_api"],
-  "after_dependencies": ["homebasket"],
+  "dependencies": [
+    "http",
+    "frontend",
+    "todo",
+    "websocket_api"
+  ],
+  "after_dependencies": [
+    "homebasket",
+    "conversation"
+  ],
   "documentation": "https://github.com/ivan1mihaylov/HomeBasket-Lists",
   "integration_type": "service",
   "iot_class": "local_push",

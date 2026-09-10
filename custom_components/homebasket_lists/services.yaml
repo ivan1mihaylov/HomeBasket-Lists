@@ -2,15 +2,14 @@ add_item:
   name: Add an item
   description: Add an item to a HomeBasket list, with the extra fields a to-do item cannot hold.
   fields:
-    entity_id:
+    list:
       name: List
-      description: The HomeBasket list to add to.
-      required: true
-      example: todo.shopping
+      description: >-
+        Which list, by name. Can be left out when there is only one.
+      required: false
+      example: Пазаруване
       selector:
-        entity:
-          integration: homebasket_lists
-          domain: todo
+        text:
     summary:
       name: Name
       description: What to buy or do.
@@ -60,13 +59,14 @@ update_item:
   name: Update an item
   description: Change an item. Only the fields you pass are touched.
   fields:
-    entity_id:
+    list:
       name: List
-      required: true
+      description: >-
+        Which list, by name. Can be left out when there is only one.
+      required: false
+      example: Пазаруване
       selector:
-        entity:
-          integration: homebasket_lists
-          domain: todo
+        text:
     uid:
       name: Item id
       description: The uid of the item, as returned by Get items.
@@ -119,13 +119,14 @@ remove_item:
   name: Remove an item
   description: Delete an item here and in every linked list.
   fields:
-    entity_id:
+    list:
       name: List
-      required: true
+      description: >-
+        Which list, by name. Can be left out when there is only one.
+      required: false
+      example: Пазаруване
       selector:
-        entity:
-          integration: homebasket_lists
-          domain: todo
+        text:
     uid:
       name: Item id
       required: true
@@ -138,14 +139,13 @@ get_items:
     Return the items of one list or of all of them, with their shop, type and
     linked product. Use it to build a reminder for when you reach a shop.
   fields:
-    entity_id:
+    list:
       name: List
-      description: Leave empty to read every list.
+      description: The list's name. Leave empty to read every list.
       required: false
+      example: Пазаруване
       selector:
-        entity:
-          integration: homebasket_lists
-          domain: todo
+        text:
     store:
       name: Shop
       description: >-
@@ -176,11 +176,10 @@ sync_now:
     Read the linked lists and push our items back out, instead of waiting for
     the next change. Also links items to HomeBasket products.
   fields:
-    entity_id:
+    list:
       name: List
-      description: Leave empty to sync every list.
+      description: The list's name. Leave empty to sync every list.
       required: false
+      example: Пазаруване
       selector:
-        entity:
-          integration: homebasket_lists
-          domain: todo
+        text:
