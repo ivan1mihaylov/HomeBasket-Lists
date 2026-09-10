@@ -1,29 +1,13 @@
-### Three kinds of item, each with its own fields
+### The add field suggests the products HomeBasket knows
 
-An item is a product, a task, or neither:
+Start typing and the products HomeBasket has learned appear underneath, matched
+on name, brand or category. Pick one and the item goes onto the list already
+linked to it — its picture, category and Open Food Facts details come with it,
+instead of waiting for the name to match a product exactly.
 
-| Type | Fields |
-| --- | --- |
-| **Product** | Name, quantity, shop, note |
-| **Task** | Name, due date, how long it takes, tools, note |
-| **None** | Name, note |
+Arrow keys walk the suggestions, Enter takes the highlighted one, Escape closes
+them, and Enter with nothing highlighted adds exactly what you typed. Nothing is
+suggested below two letters, where half the shelf would match.
 
-"None" is a real choice now, not an empty type: a plain line with a name and a
-note, for something you just want to remember. Only a product carries a shop
-and a quantity, and only a product is grouped under a shop.
-
-### Tasks say how long they take, and what they need
-
-**Takes** is a number with a unit — minutes, hours or days. **Tools** is free
-text: a drill, a ladder, a spare filter. Both are optional, and both show on the
-item's row so a glance at the list tells you what a job needs.
-
-Switching an item's type swaps the fields immediately and clears what the new
-type does not have.
-
-### Also
-
-The item type is no longer a per-list setting — the three kinds are fixed, so
-there is nothing to configure. The `homebasket_lists.add_item` and
-`update_item` actions take `due`, `duration`, `duration_unit` and `tools` as
-well.
+Without HomeBasket installed, or for a name it does not know, the field behaves
+as before.

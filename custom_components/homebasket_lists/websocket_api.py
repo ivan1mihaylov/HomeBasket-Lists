@@ -98,6 +98,7 @@ def async_register(hass: HomeAssistant) -> None:
         websocket_sync,
         websocket_photo,
         websocket_product_details,
+        websocket_search_products,
     ):
         ws.async_register_command(hass, handler)
 
@@ -253,3 +254,39 @@ async def websocket_product_details(
         return
     details = await runtimes[0].products.async_details(msg["code"])
     connection.send_result(msg["id"], {"details": details})
+
+
+@ws.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/products/search",
+        vol.Required("query"): str,
+        vol.Optional("limit", default=6): vol.All(int, vol.Range(min=1, max=25)),
+    }
+)
+@ws.async_response
+async def websocket_search_products(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return HomeBasket products matching what is being typed."""
+    runtimes = list(hass.data.get(DOMAIN, {}).values())
+    if not runtimes:
+        connection.send_result(msg["id"], {"products": []})
+        return
+
+    found = runtimes[0].products.search(msg["query"], msg["limit"])
+    connection.send_result(
+        msg["id"],
+        {
+            "products": [
+                {
+                    "code": product.get("code"),
+                    "name": product.get("name"),
+                    "brand": product.get("brand"),
+                    "category": product.get("category"),
+                    "image": product.get("image"),
+                    "has_photo": product.get("has_photo", False),
+                }
+                for product in found
+            ]
+        },
+    )

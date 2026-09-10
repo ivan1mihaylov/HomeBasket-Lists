@@ -61,6 +61,16 @@ class ProductLink:
                 return product
         return None
 
+    def search(self, text: str, limit: int = 6) -> list[dict[str, Any]]:
+        """Return the products whose name, brand or category matches `text`.
+
+        Unlike `match`, this is for offering choices to a person, so a partial
+        match is what is wanted.
+        """
+        if (api := self.api) is None or not str(text or "").strip():
+            return []
+        return api.find(text)[:limit]
+
     async def async_details(self, code: str | None) -> dict[str, Any] | None:
         """Return the cached Open Food Facts record for a product."""
         if not code or (api := self.api) is None:

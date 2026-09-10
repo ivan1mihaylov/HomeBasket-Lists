@@ -69,9 +69,16 @@ the shop empty** — a shop is something you assign afterwards, in the card.
 ## HomeBasket products
 
 When [HomeBasket](https://github.com/ivan1mihaylov/HomeBasket) is installed,
-an item whose name exactly matches a product is linked to it, and the card
-shows that product's picture and category. Only an exact match counts — a near
-match would attach the wrong product to the wrong item.
+typing in the add field offers the products it knows, matched on name, brand or
+category. Pick one and the item lands on the list already linked to it, with its
+picture, category and details — no waiting for a name to match. Arrow keys walk
+the list, Enter takes the highlighted one, and Enter with nothing highlighted
+adds exactly what you typed.
+
+An item typed out by hand, or arriving from a linked list, is linked to a
+product only when the name matches one **exactly**. A near match would attach
+the wrong nutrition to the wrong item, and the suggestions are there for
+everything else.
 
 So the current arrangement holds: HomeBasket keeps putting scanned products on
 whichever to-do list it is configured with, and this integration picks them up

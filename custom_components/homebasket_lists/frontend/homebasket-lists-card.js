@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -46,6 +46,7 @@ const TRANSLATIONS = {
     syncing: 'Syncing…',
     synced: 'Lists are in step',
     linkedTo: (n) => `Linked to ${n} list${n === 1 ? '' : 's'}`,
+    suggestions: 'Known products',
     product: 'Product',
     openProduct: 'Known to HomeBasket — tap for details',
     due: 'Due',
@@ -118,6 +119,7 @@ const TRANSLATIONS = {
     syncing: 'Синхронизиране…',
     synced: 'Списъците са изравнени',
     linkedTo: (n) => `Свързан с ${n} ${n === 1 ? 'списък' : 'списъка'}`,
+    suggestions: 'Познати продукти',
     product: 'Продукт',
     openProduct: 'Познат на HomeBasket — натисни за информация',
     due: 'Срок',
@@ -265,6 +267,40 @@ const STYLES = `
   }
   .add-row input:focus { outline: 2px solid var(--hb-accent); outline-offset: -1px; }
   .add-row .btn.primary { padding: 0 16px; }
+
+  /* What is being typed, matched against the products HomeBasket knows. */
+  .suggest { margin: -6px 0 14px; }
+  .suggest .heading {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--hb-muted);
+    padding: 8px 2px 6px;
+  }
+  .suggest .option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    background: var(--hb-raised);
+    text-align: start;
+  }
+  .suggest .option:hover,
+  .suggest .option[aria-selected='true'] {
+    border-color: var(--hb-accent);
+    background: color-mix(in srgb, var(--hb-accent) 10%, var(--hb-raised));
+  }
+  .suggest .option .thumb { width: 34px; height: 34px; border-radius: 9px; }
+  .suggest .option .thumb svg { width: 17px; height: 17px; }
+  .suggest .option .who { flex: 1 1 auto; min-width: 0; }
+  .suggest .option .who .name { font-size: 0.875rem; font-weight: 600; overflow-wrap: anywhere; }
+  .suggest .option .who .meta { font-size: 0.6875rem; color: var(--hb-muted); }
 
   .items { display: flex; flex-direction: column; gap: 8px; }
   .item {
@@ -719,6 +755,9 @@ class HomeBasketListsCard extends HTMLElement {
     this._photos = new Map();
     this._loadingPhotos = new Set();
     this._busy = false;
+    this._suggestions = [];
+    this._suggestIndex = -1;
+    this._suggestTimer = null;
     this._unsubscribe = null;
     this._rendered = false;
   }
@@ -804,16 +843,18 @@ class HomeBasketListsCard extends HTMLElement {
 
   /* ---------------- Actions ---------------- */
 
-  async _addItem(summary) {
+  async _addItem(summary, extra = {}) {
     const text = (summary || '').trim();
     if (!text || !this._board || this._busy) return;
 
     this._busy = true;
     this._input.disabled = true;
+    this._clearSuggestions();
     try {
       await this._call('homebasket_lists/item/add', {
         entry_id: this._board.entry_id,
         summary: text,
+        ...extra,
       });
       this._input.value = '';
     } catch (err) {
@@ -824,6 +865,137 @@ class HomeBasketListsCard extends HTMLElement {
       await this._refresh();
       this._input.focus();
     }
+  }
+
+  /* ---------------- Suggestions while typing ---------------- */
+
+  /**
+   * Offer the products HomeBasket knows as you type.
+   *
+   * Picking one takes its name and links the item to it, so it lands on the
+   * list already knowing its picture, category and details - no waiting for a
+   * name to match exactly.
+   */
+  _onTyping(text) {
+    clearTimeout(this._suggestTimer);
+    const query = (text || '').trim();
+
+    // One or two letters match half the shelf; below that it is just noise.
+    if (query.length < 2) {
+      this._clearSuggestions();
+      return;
+    }
+
+    this._suggestTimer = setTimeout(async () => {
+      try {
+        const { products } = await this._call('homebasket_lists/products/search', {
+          query,
+        });
+        // The field may have moved on while the answer was in flight.
+        if (this._input.value.trim() !== query) return;
+        this._suggestions = products || [];
+      } catch {
+        this._suggestions = [];
+      }
+      this._suggestIndex = -1;
+      this._renderSuggestions();
+    }, 180);
+  }
+
+  _clearSuggestions() {
+    clearTimeout(this._suggestTimer);
+    this._suggestions = [];
+    this._suggestIndex = -1;
+    this._renderSuggestions();
+  }
+
+  /** Arrow keys walk the list; Enter takes the highlighted one. */
+  _onSuggestKey(event) {
+    if (!this._suggestions.length) return false;
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const step = event.key === 'ArrowDown' ? 1 : -1;
+      // The cycle runs through every suggestion and back to what was typed,
+      // so it has one more state than there are suggestions.
+      const states = this._suggestions.length + 1;
+      this._suggestIndex =
+        ((this._suggestIndex + 1 + step + states) % states) - 1;
+      this._renderSuggestions();
+      return true;
+    }
+
+    if (event.key === 'Escape') {
+      this._clearSuggestions();
+      return true;
+    }
+
+    if (event.key === 'Enter' && this._suggestIndex >= 0) {
+      event.preventDefault();
+      this._pickSuggestion(this._suggestions[this._suggestIndex]);
+      return true;
+    }
+    return false;
+  }
+
+  _pickSuggestion(product) {
+    if (!product) return;
+    this._addItem(product.name, {
+      product_code: product.code,
+      item_type: TYPE_PRODUCT,
+    });
+  }
+
+  _renderSuggestions() {
+    if (!this._suggestBox) return;
+
+    if (!this._suggestions.length) {
+      this._suggestBox.replaceChildren();
+      return;
+    }
+
+    const t = this._t;
+    const box = el('div', {}, el('div', { class: 'heading', text: t.suggestions }));
+
+    for (const [index, product] of this._suggestions.entries()) {
+      const thumb = el('div', { class: 'thumb' });
+      const image = el('img', { alt: '', hidden: true });
+      thumb.append(image, icon('image'));
+      if (product.has_photo) this._fillPhoto(product.code, image);
+      else if (product.image) {
+        image.src = product.image;
+        image.hidden = false;
+      }
+
+      box.appendChild(
+        el(
+          'button',
+          {
+            class: 'option',
+            'aria-selected': String(index === this._suggestIndex),
+            on: {
+              // Before blur, so the field losing focus cannot cancel the pick.
+              pointerdown: (event) => {
+                event.preventDefault();
+                this._pickSuggestion(product);
+              },
+            },
+          },
+          thumb,
+          el(
+            'div',
+            { class: 'who' },
+            el('div', { class: 'name', text: product.name }),
+            el('div', {
+              class: 'meta',
+              text: [product.brand, product.category].filter(Boolean).join(' · '),
+            }),
+          ),
+        ),
+      );
+    }
+
+    this._suggestBox.replaceChildren(box);
   }
 
   async _toggle(item) {
@@ -1252,8 +1424,11 @@ class HomeBasketListsCard extends HTMLElement {
 
     this._input = el('input', { type: 'text', autocomplete: 'off' });
     this._input.addEventListener('keydown', (event) => {
+      if (this._onSuggestKey(event)) return;
       if (event.key === 'Enter') this._addItem(event.target.value);
     });
+    this._input.addEventListener('input', (event) => this._onTyping(event.target.value));
+    this._suggestBox = el('div', { class: 'suggest' });
     this._addButton = el(
       'button',
       {
@@ -1343,7 +1518,7 @@ class HomeBasketListsCard extends HTMLElement {
     this._count.textContent = t.itemsLeft(open.length);
     this._syncButton.hidden = !board.linked_lists?.length;
 
-    this._body.appendChild(this._addRow);
+    this._body.append(this._addRow, this._suggestBox);
 
     if (!board.items.length) {
       this._body.appendChild(el('div', { class: 'empty' }, el('p', { text: t.empty })));
