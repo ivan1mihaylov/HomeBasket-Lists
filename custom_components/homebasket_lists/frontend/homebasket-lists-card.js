@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.4.1';
+const VERSION = '0.4.2';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -47,6 +47,9 @@ const TRANSLATIONS = {
     synced: 'Lists are in step',
     linkedTo: (n) => `Linked to ${n} list${n === 1 ? '' : 's'}`,
     suggestions: 'Known products',
+    searchFailed:
+      'Could not reach HomeBasket Lists for suggestions. Restart Home Assistant ' +
+      'if you have just updated it.',
     product: 'Product',
     openProduct: 'Known to HomeBasket — tap for details',
     due: 'Due',
@@ -120,6 +123,9 @@ const TRANSLATIONS = {
     synced: 'Списъците са изравнени',
     linkedTo: (n) => `Свързан с ${n} ${n === 1 ? 'списък' : 'списъка'}`,
     suggestions: 'Познати продукти',
+    searchFailed:
+      'Предложенията не стигат до HomeBasket Lists. Рестартирай Home Assistant, ' +
+      'ако току-що си обновявал.',
     product: 'Продукт',
     openProduct: 'Познат на HomeBasket — натисни за информация',
     due: 'Срок',
@@ -880,6 +886,12 @@ class HomeBasketListsCard extends HTMLElement {
     clearTimeout(this._suggestTimer);
     const query = (text || '').trim();
 
+    // No products to offer without HomeBasket, so do not go asking.
+    if (this._board && this._board.products_available === false) {
+      this._clearSuggestions();
+      return;
+    }
+
     // One or two letters match half the shelf; below that it is just noise.
     if (query.length < 2) {
       this._clearSuggestions();
@@ -894,8 +906,15 @@ class HomeBasketListsCard extends HTMLElement {
         // The field may have moved on while the answer was in flight.
         if (this._input.value.trim() !== query) return;
         this._suggestions = products || [];
-      } catch {
+      } catch (err) {
         this._suggestions = [];
+        // Swallowing this made a broken search look exactly like a search
+        // that found nothing, which is the worst way to fail.
+        console.warn('homebasket-lists: product search failed', err);
+        if (err?.code === 'unknown_command' && !this._warnedAboutSearch) {
+          this._warnedAboutSearch = true;
+          toast(this.shadowRoot, this._t.searchFailed, true);
+        }
       }
       this._suggestIndex = -1;
       this._renderSuggestions();
