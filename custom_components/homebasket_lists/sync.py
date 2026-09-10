@@ -188,8 +188,13 @@ class ListSync:
 
             ours = self.store.find_by_summary(summary)
             if ours is None:
-                # An item we have never seen. On the very first sync this is
-                # simply the list's existing contents.
+                # Only something genuinely new to the spoke is adopted. An item
+                # the spoke still holds from last time but we no longer have is
+                # one we just deleted - re-adding it here would undo that
+                # before the push could carry the deletion across.
+                if previous is not None:
+                    continue
+
                 await self.store.async_add(
                     summary=summary,
                     status=item["status"],

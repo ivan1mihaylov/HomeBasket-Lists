@@ -20,18 +20,25 @@ _REGISTERED = f"{DOMAIN}_ws_registered"
 # names the command in a key called `type`, and voluptuous markers compare by
 # their string, so a field of that name silently replaces the command name and
 # the command can never be reached.
+# The fields are declared by name, and the schema is built from them. A
+# voluptuous marker is not a string, so reading the schema's keys as field
+# names hands markers to **kwargs, where Python refuses them.
+ITEM_VALIDATORS = {
+    "summary": str,
+    "status": vol.In([STATUS_NEEDS_ACTION, STATUS_COMPLETED]),
+    "item_type": vol.Any(str, None),
+    "store": vol.Any(str, None),
+    "quantity": vol.Any(str, None),
+    "note": vol.Any(str, None),
+    "due": vol.Any(str, None),
+    "duration": vol.Any(int, float, None),
+    "duration_unit": vol.Any(vol.In(DURATION_UNITS), None),
+    "tools": vol.Any(str, None),
+    "product_code": vol.Any(str, None),
+}
+
 ITEM_FIELDS = {
-    vol.Optional("summary"): str,
-    vol.Optional("status"): vol.In([STATUS_NEEDS_ACTION, STATUS_COMPLETED]),
-    vol.Optional("item_type"): vol.Any(str, None),
-    vol.Optional("store"): vol.Any(str, None),
-    vol.Optional("quantity"): vol.Any(str, None),
-    vol.Optional("note"): vol.Any(str, None),
-    vol.Optional("due"): vol.Any(str, None),
-    vol.Optional("duration"): vol.Any(int, float, None),
-    vol.Optional("duration_unit"): vol.Any(vol.In(DURATION_UNITS), None),
-    vol.Optional("tools"): vol.Any(str, None),
-    vol.Optional("product_code"): vol.Any(str, None),
+    vol.Optional(name): validator for name, validator in ITEM_VALIDATORS.items()
 }
 
 # Wire name -> stored name.
@@ -41,9 +48,9 @@ FIELD_NAMES = {"item_type": "type"}
 def _item_fields(msg: dict[str, Any], *, skip: tuple[str, ...] = ()) -> dict[str, Any]:
     """Return the item fields a message actually carried."""
     return {
-        FIELD_NAMES.get(key, key): msg[key]
-        for key in ITEM_FIELDS
-        if key in msg and key not in skip
+        FIELD_NAMES.get(name, name): msg[name]
+        for name in ITEM_VALIDATORS
+        if name in msg and name not in skip
     }
 
 

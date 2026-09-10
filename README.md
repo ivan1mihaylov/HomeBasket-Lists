@@ -175,6 +175,17 @@ type: custom:homebasket-lists-card
 | `group_by_store` | `true` | Group open items under their shop. |
 | `show_completed` | `true` | Show what is already ticked off. |
 
+## Development
+
+The sync engine has a test that runs without Home Assistant:
+
+```bash
+python3 tests/test_sync.py
+```
+
+It stands a fake to-do list up and walks an item through adding, ticking and
+deleting from both sides.
+
 ## License
 
 [MIT](LICENSE)

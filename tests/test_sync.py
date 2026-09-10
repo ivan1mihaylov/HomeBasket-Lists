@@ -1,0 +1,252 @@
+"""Checks the two-way sync without a running Home Assistant.
+
+The sync engine is the riskiest part of this integration and the hardest to
+try by hand, so it gets a test that runs anywhere:
+
+    python3 tests/test_sync.py
+
+Only what `sync.py` imports from Home Assistant is stubbed, and the linked
+to-do list is a dictionary standing in for the `todo.*` services.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import datetime
+import sys
+import types
+import uuid
+from pathlib import Path
+
+# --- Home Assistant stubs, before importing the integration ----------------
+for name in (
+    "homeassistant",
+    "homeassistant.core",
+    "homeassistant.helpers",
+    "homeassistant.helpers.storage",
+    "homeassistant.helpers.event",
+    "homeassistant.config_entries",
+    "homeassistant.util",
+):
+    sys.modules.setdefault(name, types.ModuleType(name))
+
+sys.modules["homeassistant.core"].HomeAssistant = object
+sys.modules["homeassistant.core"].Event = object
+sys.modules["homeassistant.core"].callback = lambda func: func
+sys.modules["homeassistant.config_entries"].ConfigEntry = object
+sys.modules["homeassistant.helpers.event"].async_track_state_change_event = (
+    lambda *a, **k: (lambda: None)
+)
+sys.modules["homeassistant.helpers.event"].async_track_time_interval = (
+    lambda *a, **k: (lambda: None)
+)
+sys.modules["homeassistant.util"].dt = types.SimpleNamespace(
+    utcnow=lambda: datetime.datetime(2026, 1, 1)
+)
+
+
+class _Store:
+    """Storage that keeps the data in memory."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.data = None
+
+    async def async_load(self):
+        return self.data
+
+    async def async_save(self, data) -> None:
+        self.data = data
+
+
+sys.modules["homeassistant.helpers.storage"].Store = _Store
+
+# Stand the package up without running its __init__, which would pull in the
+# whole of Home Assistant. Its submodules still import each other normally.
+_COMPONENT = (
+    Path(__file__).resolve().parent.parent
+    / "custom_components"
+    / "homebasket_lists"
+)
+_package = types.ModuleType("homebasket_lists")
+_package.__path__ = [str(_COMPONENT)]
+sys.modules["homebasket_lists"] = _package
+
+from homebasket_lists.store import ListStore  # noqa: E402
+from homebasket_lists.sync import ListSync  # noqa: E402
+
+SPOKE = "todo.shopping_list"
+
+
+class FakeTodo:
+    """A built-in to-do list, as far as the sync engine can tell."""
+
+    def __init__(self) -> None:
+        self.items: dict[str, dict] = {}
+
+    def add(self, summary: str, status: str = "needs_action") -> str:
+        uid = uuid.uuid4().hex[:8]
+        self.items[uid] = {"uid": uid, "summary": summary, "status": status}
+        return uid
+
+    def remove(self, summary: str) -> None:
+        for uid, item in list(self.items.items()):
+            if item["summary"] == summary:
+                del self.items[uid]
+
+    def set_status(self, summary: str, status: str) -> None:
+        for item in self.items.values():
+            if item["summary"] == summary:
+                item["status"] = status
+
+    def contents(self) -> set[tuple[str, str]]:
+        return {(item["summary"], item["status"]) for item in self.items.values()}
+
+    async def async_call(
+        self, domain, service, data, target=None, blocking=False, return_response=False
+    ):
+        assert domain == "todo", domain
+        if service == "get_items":
+            return {SPOKE: {"items": list(self.items.values())}}
+        if service == "add_item":
+            self.add(data["item"])
+            return None
+        if service == "remove_item":
+            self.items.pop(data["item"], None)
+            self.remove(data["item"])
+            return None
+        if service == "update_item":
+            for uid, item in self.items.items():
+                if uid == data["item"] or item["summary"] == data["item"]:
+                    if "status" in data:
+                        item["status"] = data["status"]
+                    if "rename" in data:
+                        item["summary"] = data["rename"]
+            return None
+        raise AssertionError(f"unexpected todo.{service}")
+
+
+class FakeHass:
+    def __init__(self, todo: FakeTodo) -> None:
+        self.services = todo
+
+
+class FakeEntry:
+    def __init__(self) -> None:
+        self.options = {"linked_lists": [SPOKE], "link_products": False}
+        self.data: dict = {}
+
+
+class NoProducts:
+    available = False
+
+    def match(self, summary):
+        return None
+
+
+def ours(store: ListStore) -> set[tuple[str, str]]:
+    return {(item["summary"], item["status"]) for item in store.items}
+
+
+def check(label: str, store: ListStore, todo: FakeTodo, expected: set) -> None:
+    """Both sides must hold exactly `expected`."""
+    for side, actual in (("ours", ours(store)), ("spoke", todo.contents())):
+        if actual != expected:
+            raise AssertionError(
+                f"{label}: {side} is {sorted(actual)}, expected {sorted(expected)}"
+            )
+    print(f"  ok  {label}")
+
+
+async def main() -> None:
+    todo = FakeTodo()
+    hass = FakeHass(todo)
+    store = ListStore(None, "entry")
+    await store.async_load()
+    sync = ListSync(hass, FakeEntry(), store, NoProducts())
+
+    todo.add("Хляб")
+    todo.add("Мляко")
+    await sync.async_sync()
+    check(
+        "a first sync adopts what the linked list holds",
+        store,
+        todo,
+        {("Хляб", "needs_action"), ("Мляко", "needs_action")},
+    )
+
+    await store.async_add(summary="Яйца")
+    await sync.async_sync()
+    check(
+        "an item added here reaches the linked list",
+        store,
+        todo,
+        {("Хляб", "needs_action"), ("Мляко", "needs_action"), ("Яйца", "needs_action")},
+    )
+
+    todo.add("Сирене")
+    await sync.async_sync()
+    check(
+        "an item added there reaches us",
+        store,
+        todo,
+        {
+            ("Хляб", "needs_action"),
+            ("Мляко", "needs_action"),
+            ("Яйца", "needs_action"),
+            ("Сирене", "needs_action"),
+        },
+    )
+
+    # The one that used to come straight back: the pull re-adopted it before
+    # the push could carry the deletion across.
+    await store.async_remove([store.find_by_summary("Яйца")["uid"]])
+    await sync.async_sync()
+    check(
+        "an item deleted here stays deleted",
+        store,
+        todo,
+        {("Хляб", "needs_action"), ("Мляко", "needs_action"), ("Сирене", "needs_action")},
+    )
+
+    todo.set_status("Хляб", "completed")
+    await sync.async_sync()
+    check(
+        "ticking there ticks here",
+        store,
+        todo,
+        {("Хляб", "completed"), ("Мляко", "needs_action"), ("Сирене", "needs_action")},
+    )
+
+    todo.remove("Мляко")
+    await sync.async_sync()
+    check(
+        "deleting there deletes here",
+        store,
+        todo,
+        {("Хляб", "completed"), ("Сирене", "needs_action")},
+    )
+
+    cheese = store.find_by_summary("Сирене")
+    await store.async_update(cheese["uid"], status="completed")
+    await sync.async_sync()
+    check(
+        "ticking here ticks there",
+        store,
+        todo,
+        {("Хляб", "completed"), ("Сирене", "completed")},
+    )
+
+    await store.async_update(cheese["uid"], status="needs_action")
+    await sync.async_sync()
+    check(
+        "un-ticking here un-ticks there",
+        store,
+        todo,
+        {("Хляб", "completed"), ("Сирене", "needs_action")},
+    )
+
+    print("\nAll sync checks passed.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

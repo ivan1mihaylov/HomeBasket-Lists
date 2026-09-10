@@ -1,13 +1,25 @@
-### The add field suggests the products HomeBasket knows
+Two things reported from a real list, both fixed.
 
-Start typing and the products HomeBasket has learned appear underneath, matched
-on name, brand or category. Pick one and the item goes onto the list already
-linked to it — its picture, category and Open Food Facts details come with it,
-instead of waiting for the name to match a product exactly.
+### Ticking an item off said "Unknown error"
 
-Arrow keys walk the suggestions, Enter takes the highlighted one, Escape closes
-them, and Enter with nothing highlighted adds exactly what you typed. Nothing is
-suggested below two letters, where half the shelf would match.
+The handler read its field names from the WebSocket schema, whose keys are
+voluptuous markers rather than strings, and Python refuses those as keyword
+arguments. Every update raised before it got anywhere. The fields are declared
+by name now, with the schema built from them, so the two cannot drift apart.
 
-Without HomeBasket installed, or for a name it does not know, the field behaves
-as before.
+### Deleting an item did nothing
+
+The item was deleted and then immediately put back. A sync pass reads the
+linked lists before it writes to them, and an item the linked list still held
+but we no longer had looked like something new to adopt — so the deletion was
+undone before it could be carried across.
+
+Only an item that is genuinely new to a linked list is adopted now. One that
+was there last time and is gone from ours is one we deleted, and the push
+removes it from the linked list.
+
+### Also
+
+The sync engine now has a test that runs without Home Assistant —
+`python3 tests/test_sync.py` — walking an item through adding, ticking and
+deleting from both sides. Both bugs above would have been caught by it.
