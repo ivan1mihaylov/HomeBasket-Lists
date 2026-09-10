@@ -38,9 +38,18 @@ add_item:
           domain: zone
     quantity:
       name: Quantity
-      description: How many or how much.
+      description: How many, as a number. The unit goes in its own field.
       required: false
-      example: 2 бр.
+      example: 2
+      selector:
+        number:
+          min: 0
+          mode: box
+    unit:
+      name: Unit
+      description: Free text - бр., кг, литра, whatever fits.
+      required: false
+      example: бр.
       selector:
         text:
     note:
@@ -140,6 +149,13 @@ update_item:
           domain: zone
     quantity:
       name: Quantity
+      required: false
+      selector:
+        number:
+          min: 0
+          mode: box
+    unit:
+      name: Unit
       required: false
       selector:
         text:

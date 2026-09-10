@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.4.3';
+const VERSION = '0.5.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -33,6 +33,11 @@ const TRANSLATIONS = {
     edit: 'Edit item',
     name: 'Name',
     quantity: 'Quantity',
+    unit: 'Unit',
+    unitHint: 'Free text — pieces, kg, litres, whatever fits.',
+    less: 'One less',
+    more: 'One more',
+    suggestionsHint: 'Not on the list — tap to add',
     type: 'Type',
     store: 'Shop',
     note: 'Note',
@@ -111,6 +116,11 @@ const TRANSLATIONS = {
     edit: 'Редакция на запис',
     name: 'Име',
     quantity: 'Количество',
+    unit: 'Мерна единица',
+    unitHint: 'Свободен текст — бр., кг, литра, каквото пасва.',
+    less: 'С едно по-малко',
+    more: 'С едно повече',
+    suggestionsHint: 'Не са в списъка — натисни, за да добавиш',
     type: 'Тип',
     store: 'Магазин',
     note: 'Бележка',
@@ -288,6 +298,16 @@ const STYLES = `
     color: var(--hb-muted);
     padding: 8px 2px 6px;
   }
+  .suggest .heading .sub {
+    display: block;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 0.6875rem;
+    padding-top: 2px;
+  }
+  /* Dashed and tinted, so a suggestion cannot be mistaken for a row that is
+     already on the list. */
   .suggest .option {
     display: flex;
     align-items: center;
@@ -296,15 +316,22 @@ const STYLES = `
     box-sizing: border-box;
     padding: 8px 10px;
     margin-bottom: 6px;
-    border: 1px solid var(--hb-line);
+    border: 1px dashed color-mix(in srgb, var(--hb-accent) 55%, var(--hb-line));
     border-radius: 12px;
-    background: var(--hb-raised);
+    background: color-mix(in srgb, var(--hb-accent) 7%, transparent);
     text-align: start;
   }
   .suggest .option:hover,
   .suggest .option[aria-selected='true'] {
+    border-style: solid;
     border-color: var(--hb-accent);
-    background: color-mix(in srgb, var(--hb-accent) 10%, var(--hb-raised));
+    background: color-mix(in srgb, var(--hb-accent) 16%, transparent);
+  }
+  .suggest .option .add-hint {
+    flex: 0 0 auto;
+    color: var(--hb-accent);
+    font-size: 1.1rem;
+    font-weight: 600;
   }
   .suggest .option .thumb { width: 34px; height: 34px; border-radius: 9px; }
   .suggest .option .thumb svg { width: 17px; height: 17px; }
@@ -434,6 +461,46 @@ const STYLES = `
   .dialog textarea { min-height: 74px; resize: vertical; }
   .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
   .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
+  .stepper { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+  .stepper .step {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--hb-line);
+    border-radius: 12px;
+    background: var(--hb-sunken);
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .stepper .step:hover { border-color: var(--hb-accent); color: var(--hb-accent); }
+  .stepper input[type='number'] {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-bottom: 0;
+    text-align: center;
+  }
+  .stepper input[type='text'] { flex: 1 1 40%; min-width: 0; margin-bottom: 0; }
+
+  /* The same idea on a list row, as text rather than a badge. */
+  .amount { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; }
+  .amount .step {
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 6px;
+    border: 1px solid var(--hb-line);
+    color: var(--hb-muted);
+    font-size: 0.9375rem;
+    line-height: 1;
+    padding: 0;
+  }
+  .amount .step:hover { border-color: var(--hb-accent); color: var(--hb-accent); }
+  .amount .value { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .amount .unit { color: var(--hb-muted); }
+
   .dialog .duration { display: flex; gap: 8px; margin-bottom: 14px; }
   .dialog .duration input { flex: 1 1 auto; min-width: 0; margin-bottom: 0; }
   .dialog .duration select { flex: 0 0 auto; width: 40%; margin-bottom: 0; }
@@ -992,7 +1059,16 @@ class HomeBasketListsCard extends HTMLElement {
     }
 
     const t = this._t;
-    const box = el('div', {}, el('div', { class: 'heading', text: t.suggestions }));
+    const box = el(
+      'div',
+      {},
+      el(
+        'div',
+        { class: 'heading' },
+        el('span', { text: t.suggestions }),
+        el('span', { class: 'sub', text: t.suggestionsHint }),
+      ),
+    );
 
     for (const [index, product] of this._suggestions.entries()) {
       const thumb = el('div', { class: 'thumb' });
@@ -1028,6 +1104,7 @@ class HomeBasketListsCard extends HTMLElement {
               text: [product.brand, product.category].filter(Boolean).join(' · '),
             }),
           ),
+          el('span', { class: 'add-hint', text: '+' }),
         ),
       );
     }
@@ -1186,6 +1263,7 @@ class HomeBasketListsCard extends HTMLElement {
           const drawPerType = () => {
             perType.replaceChildren();
             fields.quantity = null;
+            fields.unit = null;
             fields.store = null;
             fields.due = null;
             fields.duration = null;
@@ -1194,8 +1272,45 @@ class HomeBasketListsCard extends HTMLElement {
 
             if (isProduct(type)) {
               perType.appendChild(el('label', { text: t.quantity }));
-              fields.quantity = el('input', { type: 'text', value: item.quantity || '' });
-              perType.appendChild(fields.quantity);
+              fields.quantity = el('input', {
+                type: 'number',
+                min: '0',
+                step: 'any',
+                inputmode: 'decimal',
+                value: item.quantity ?? '',
+              });
+              const nudge = (by) => {
+                const next = Math.max(0, (Number(fields.quantity.value) || 0) + by);
+                fields.quantity.value = next ? String(next) : '';
+              };
+              fields.unit = el('input', {
+                type: 'text',
+                placeholder: t.unit,
+                value: item.unit || '',
+              });
+              perType.appendChild(
+                el(
+                  'div',
+                  { class: 'stepper' },
+                  el('button', {
+                    class: 'step',
+                    text: '−',
+                    title: t.less,
+                    'aria-label': t.less,
+                    on: { click: () => nudge(-1) },
+                  }),
+                  fields.quantity,
+                  el('button', {
+                    class: 'step',
+                    text: '+',
+                    title: t.more,
+                    'aria-label': t.more,
+                    on: { click: () => nudge(1) },
+                  }),
+                  fields.unit,
+                ),
+              );
+              perType.appendChild(el('p', { class: 'hint', text: t.unitHint }));
 
               perType.appendChild(el('label', { text: t.store }));
               fields.store = el('select');
@@ -1273,7 +1388,10 @@ class HomeBasketListsCard extends HTMLElement {
                   note: fields.note.value.trim() || null,
                   // Whatever the chosen kind does not show is cleared, so a
                   // product turned into a task keeps no stale shop.
-                  quantity: fields.quantity ? fields.quantity.value.trim() || null : null,
+                  quantity: fields.quantity
+                    ? Number(fields.quantity.value) || null
+                    : null,
+                  unit: fields.unit ? fields.unit.value.trim() || null : null,
                   store: fields.store ? fields.store.value || null : null,
                   due: fields.due ? fields.due.value || null : null,
                   duration: fields.duration
@@ -1600,6 +1718,50 @@ class HomeBasketListsCard extends HTMLElement {
     return list;
   }
 
+  /** How many, as text with its own steppers, rather than a badge. */
+  _renderAmount(item, t) {
+    // The amount sits inside the row's own clickable area, so a tap on a step
+    // must stop there instead of also opening the item sheet.
+    const nudge = (event, by) => {
+      event.stopPropagation();
+      this._setQuantity(item, Math.max(1, (Number(item.quantity) || 0) + by));
+    };
+
+    return el(
+      'span',
+      { class: 'amount' },
+      el('button', {
+        class: 'step',
+        text: '−',
+        title: t.less,
+        'aria-label': t.less,
+        on: { click: (event) => nudge(event, -1) },
+      }),
+      el('span', { class: 'value', text: String(item.quantity) }),
+      item.unit ? el('span', { class: 'unit', text: item.unit }) : null,
+      el('button', {
+        class: 'step',
+        text: '+',
+        title: t.more,
+        'aria-label': t.more,
+        on: { click: (event) => nudge(event, 1) },
+      }),
+    );
+  }
+
+  async _setQuantity(item, quantity) {
+    try {
+      await this._call('homebasket_lists/item/update', {
+        entry_id: this._board.entry_id,
+        uid: item.uid,
+        quantity,
+      });
+    } catch (err) {
+      toast(this.shadowRoot, err.message || this._t.noAnswer, true);
+    }
+    await this._refresh();
+  }
+
   _renderItem(item, t, { hideStore = false } = {}) {
     const isDone = item.status === STATUS_DONE;
 
@@ -1628,7 +1790,7 @@ class HomeBasketListsCard extends HTMLElement {
     }
 
     const meta = el('div', { class: 'meta' });
-    if (item.quantity) meta.appendChild(el('span', { class: 'chip qty', text: item.quantity }));
+    if (item.quantity) meta.appendChild(this._renderAmount(item, t));
     if (item.store && !hideStore && !isTask(item.type)) {
       meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
     }

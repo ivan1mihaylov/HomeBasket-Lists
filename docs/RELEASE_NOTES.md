@@ -1,17 +1,23 @@
-Aimed at working out why suggestions stay empty, which turned out to be hard to
-diagnose from a phone.
+### Suggestions no longer look like list rows
 
-**A failed search now says so on screen.** The console warning added in 0.4.2 is
-no use in the Companion app, which has no console. A search that fails now shows
-the reason once, and one that cannot reach the integration at all — what an
-update without a restart looks like — says exactly that.
+A suggested product is drawn with a dashed, tinted outline and a **+**, under a
+heading that says it is not on the list. It was too easy to read one as an item
+that had already been added.
 
-**The card's version is in its own editor**, at the bottom, so you can tell
-which build the app is actually running without a console. The Companion app
-keeps its own cache, separate from any browser, so it can be a version behind
-everything else.
+### Quantity is a number and a unit
 
-**An answer is no longer thrown away when the field changes underneath it.** The
-check that dropped a stale reply compared the field's text, which a phone
-keyboard can rewrite after the request has gone out — losing a good answer.
-Requests are numbered now, and the newest one wins.
+The quantity field was free text. It is a number now, with **−** and **+** on
+either side, and the unit beside it as free text of its own — 2 бр., 1.5 кг,
+whatever fits.
+
+On a list row the quantity reads as text under the name rather than a badge,
+with its own **−** and **+** and the unit after it, so the count can be changed
+without opening the item. It stops at 1; clear it in the item sheet.
+
+Quantities written the old way are split on the way in: "2 бр." becomes 2 with
+the unit "бр.", and something like "малко" keeps its text as the unit.
+
+### Fixed
+
+A tap on a step button also opened the item sheet, because the quantity sits
+inside the row's own clickable area.

@@ -8,6 +8,7 @@ same uid, so the list can still be a plain to-do entity for voice assistants.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 from uuid import uuid4
 
@@ -28,12 +29,34 @@ EDITABLE = (
     "product_code",
     "store",
     "quantity",
+    "unit",
     "note",
     "due",
     "duration",
     "duration_unit",
     "tools",
 )
+
+
+# "2 бр." and the like, from when a quantity was one free-text field.
+LEGACY_QUANTITY = re.compile(r"^\s*(\d+(?:[.,]\d+)?)\s*(.*)$")
+
+
+def split_quantity(value: Any) -> tuple[float | None, str | None]:
+    """Split a written quantity into a number and a unit.
+
+    "2 бр." becomes (2, "бр."), "малко" becomes (None, "малко").
+    """
+    if isinstance(value, (int, float)):
+        return float(value), None
+    text = str(value or "").strip()
+    if not text:
+        return None, None
+
+    if (match := LEGACY_QUANTITY.match(text)) is None:
+        return None, text
+    amount = float(match.group(1).replace(",", "."))
+    return amount, match.group(2).strip() or None
 
 
 def normalize_summary(summary: Any) -> str:
@@ -62,6 +85,18 @@ class ListStore:
         data = await self._store.async_load() or {}
         self._items = list(data.get("items") or [])
         self._mirrors = dict(data.get("mirrors") or {})
+
+        # A quantity used to be one free-text field; it is a number and a unit
+        # now, so anything written the old way is split on the way in.
+        migrated = False
+        for item in self._items:
+            item.setdefault("unit", None)
+            if isinstance(item.get("quantity"), str):
+                item["quantity"], unit = split_quantity(item["quantity"])
+                item["unit"] = item["unit"] or unit
+                migrated = True
+        if migrated:
+            await self.async_save()
 
     async def async_save(self) -> None:
         """Write the list to disk."""
@@ -105,6 +140,7 @@ class ListStore:
             # a shop is something the user assigns later.
             "store": fields.get("store"),
             "quantity": fields.get("quantity"),
+            "unit": fields.get("unit"),
             "note": fields.get("note"),
             "due": fields.get("due"),
             # How long the task takes, and what it needs.
