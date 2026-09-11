@@ -153,11 +153,11 @@ using its to-do entity.
 
 ## Photos
 
-An item that HomeBasket has no picture for — a task, a loose vegetable, a part
-from the hardware shop — can carry a photo of its own. Open the item and use the
-square at the top to take one with the phone's camera or pick one from the
-gallery; it shows on the item's row from then on. Nothing is written until **Save**, and
-the × on the picture removes it.
+Every item can carry a photo of its own — a task, a loose vegetable, a part from
+the hardware shop, or something HomeBasket already has a picture for. Open the
+item and use the square at the top to take one with the phone's camera or pick
+one from the gallery; it shows on the item's row from then on. Nothing is
+written until **Save**, and the × on the picture removes it.
 
 Photos are shrunk before they are sent, kept in Home Assistant's own storage
 (`.storage/homebasket_lists_images/<list>/`) and read back over the
@@ -165,9 +165,10 @@ authenticated WebSocket API, so they are never served from a public path the
 way files in `www/` are. Deleting an item deletes its photo, and so does
 deleting the list.
 
-Items linked to a HomeBasket product show that product's picture instead, and
-have no photo field of their own — the picture belongs to the product there,
-where every list can use it.
+An item linked to a HomeBasket product starts with that product's picture in the
+square, marked as coming from HomeBasket. Tapping it takes your own, which then
+wins on the row; the × only ever removes your own — the product's picture
+belongs to the product, where every list can use it.
 
 ## Shops and reminders
 
