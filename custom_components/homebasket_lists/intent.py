@@ -46,7 +46,7 @@ SENTENCES: dict[str, dict[str, list[str]]] = {
         ],
         INTENT_COMPLETE: [
             "(check|tick) off {item} [(from|on|in) {hb_list}]",
-            "mark {item} [(on|in) {hb_list}] as (done|bought|complete)",
+            "mark {item} [(on|in) {hb_list}] as (done|bought|complete|completed|finished)",
             "complete {item} [(on|in) {hb_list}]",
             "I (bought|got) {item} [(from|on|in) {hb_list}]",
             "I (did|finished) {item} [(on|in) {hb_list}]",
@@ -88,7 +88,7 @@ SENTENCES: dict[str, dict[str, list[str]]] = {
             "(купих|взех|намерих) {item} [(от|в|във) {hb_list}]",
             "(свърших|направих|готово) {item} [(от|в|във|по) {hb_list}]",
             "махни {item} [(от|в|във) {hb_list}]",
-            "отбележи {item} [(от|в|във|по) {hb_list}] като (готово|купено)",
+            "(отбележи|маркирай) {item} [(от|в|във|по) {hb_list}] като (готово|купено|приключено|свършено|завършено)",
         ],
         INTENT_READ: [
             "какво (има|остава|е останало) (в|във|по) {hb_list}",
