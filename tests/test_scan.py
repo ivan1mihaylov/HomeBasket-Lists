@@ -219,11 +219,33 @@ async def main() -> None:
     check("a thing lands as a thing", answer.result["item"]["type"], "product")
     check("...as a second item", len(runtime.store.items), 2)
 
+    # --- a product HomeBasket knew before it knew about kinds --------------
+    class Older(FakeHomeBasket):
+        """HomeBasket from before it told a grocery from a thing."""
+
+        async def async_resolve(self, code, *, add_to_list=False, source="api"):
+            return {
+                "code": code,
+                "product_code": code,
+                "name": "Velingrad water 1.5 l",
+                "kind": None,
+                "status": "known",
+            }
+
+    hass.data["homebasket_api"] = Older()
+    answer = await scan(hass, "3800011000000", quantity=1, unit="pcs")
+    check(
+        "a product with no kind still lands as shopping",
+        answer.result["item"]["type"],
+        "food",
+    )
+    hass.data["homebasket_api"] = homebasket
+
     # --- a barcode nobody knows -------------------------------------------
     answer = await scan(hass, "0000000000000")
     check("an unknown barcode is reported as unknown", answer.result["status"], "unknown")
     check("...with nothing to show for it", answer.result["item"], None)
-    check("...and the list is untouched", len(runtime.store.items), 2)
+    check("...and the list is untouched", len(runtime.store.items), 3)
 
     print("\nall scan checks passed")
 

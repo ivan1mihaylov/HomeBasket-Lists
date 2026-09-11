@@ -20,6 +20,8 @@ from .const import (
     KEPT,
     PRODUCT_KINDS,
     SIGNAL_UPDATED,
+    TYPE_FOOD,
+    TYPE_PRODUCT,
     TYPE_TASK,
 )
 from .options import (
@@ -149,6 +151,15 @@ class ListRuntime:
             guess = await self.async_guess_store(fields.get("product_code"))
             if guess is not None:
                 fields["store"] = guess
+
+        # Something HomeBasket knows is something you buy, even when it is too
+        # old to say which kind - a list would rather have it as shopping than
+        # as a line with no kind at all.
+        if not fields.get("type") and fields.get("product_code"):
+            fields["type"] = next(
+                (kind for kind in self.item_types if kind in (TYPE_FOOD, TYPE_PRODUCT)),
+                None,
+            )
 
         fields = apply_type(self.entry, fields)
         item = await self.store.async_add(summary=summary, **fields)
