@@ -174,13 +174,13 @@ class FakeResponse:
 
 
 class FakeEntry:
-    """One list's config entry, with nothing configured on it."""
+    """One list's config entry, with nothing configured unless asked."""
 
-    def __init__(self, title) -> None:
+    def __init__(self, title, **options) -> None:
         self.entry_id = title
         self.title = title
         self.data: dict = {}
-        self.options: dict = {}
+        self.options: dict = options
 
 
 class FakeIntent:
@@ -368,6 +368,38 @@ async def main() -> None:
         counting.products.available,
         False,
     )
+
+    # The list decides what a repeat means.
+    ignoring = ListRuntime(FakeHass([]), FakeEntry("Пазар", duplicates="ignore"))
+    await ignoring.store.async_load()
+    await ignoring.async_add_item("мляко", quantity=1, unit="бр.")
+    check(
+        "a list set to keep what it has says so",
+        await say(add, FakeHass([ignoring]), item="мляко"),
+        "мляко вече е в Пазар.",
+    )
+    check("...and the count stays where it was", ignoring.store.items[0]["quantity"], 1)
+
+    doubling = ListRuntime(FakeHass([]), FakeEntry("Пазар", duplicates="allow"))
+    await doubling.store.async_load()
+    await doubling.async_add_item("мляко", quantity=1, unit="бр.")
+    check(
+        "a list set to allow duplicates writes a second line",
+        await say(add, FakeHass([doubling]), item="мляко"),
+        "Добавих мляко в Пазар.",
+    )
+    check("...so there are two of them", len(doubling.store.items), 2)
+
+    # A task has no quantity to raise.
+    chores = ListRuntime(FakeHass([]), FakeEntry("Ремонт", item_types=["task"]))
+    await chores.store.async_load()
+    await chores.async_add_item("полей цветята")
+    check(
+        "the same task twice keeps the one that is there",
+        await say(add, FakeHass([chores]), item="полей цветята"),
+        "полей цветята вече е в Ремонт.",
+    )
+    check("...and there is still one of it", len(chores.store.items), 1)
     check(
         "something new is still added",
         await say(add, house, item="хляб"),

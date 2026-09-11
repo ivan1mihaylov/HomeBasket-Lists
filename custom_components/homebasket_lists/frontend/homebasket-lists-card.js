@@ -37,6 +37,7 @@ const TRANSLATIONS = {
     unitHint: 'Free text — pieces, kg, litres, whatever fits.',
     defaultUnit: 'pcs',
     countedUp: (name, count) => `${name}: ${count} now`,
+    alreadyThere: (name) => `${name} is already on the list`,
     less: 'One less',
     more: 'One more',
     suggestionsHint: 'Not on the list — tap to add',
@@ -126,6 +127,7 @@ const TRANSLATIONS = {
     unitHint: 'Свободен текст — бр., кг, литра, каквото пасва.',
     defaultUnit: 'бр.',
     countedUp: (name, count) => `${name}: станаха ${count}`,
+    alreadyThere: (name) => `${name} вече е в списъка`,
     less: 'С едно по-малко',
     more: 'С едно повече',
     suggestionsHint: 'Не са в списъка — натисни, за да добавиш',
@@ -1049,11 +1051,14 @@ class HomeBasketListsCard extends HTMLElement {
         ...(isProduct(kind) ? { quantity: 1, unit: this._t.defaultUnit } : {}),
         ...extra,
       });
-      // Adding something the list already has counts one more of it, which
-      // would otherwise look like nothing happened.
-      if (result?.increased) {
-        const item = result.item || {};
+      // Adding something the list already has does whatever the list says -
+      // count it, keep it, or write a second line - and silence would look
+      // like nothing happened at all.
+      const item = result?.item || {};
+      if (result?.outcome === 'counted') {
         toast(this.shadowRoot, this._t.countedUp(item.summary || text, item.quantity ?? ''));
+      } else if (result?.outcome === 'kept') {
+        toast(this.shadowRoot, this._t.alreadyThere(item.summary || text));
       }
       this._input.value = '';
     } catch (err) {

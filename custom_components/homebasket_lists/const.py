@@ -19,6 +19,7 @@ CONF_LINKED_LISTS: Final = "linked_lists"
 CONF_STORES: Final = "stores"
 CONF_ITEM_TYPES: Final = "item_types"
 CONF_LINK_PRODUCTS: Final = "link_products"
+CONF_DUPLICATES: Final = "duplicates"
 
 # Reminding you what to buy when you reach a shop.
 CONF_NOTIFY_ARRIVAL: Final = "notify_arrival"
@@ -35,6 +36,22 @@ TYPE_TASK: Final = "task"
 ITEM_TYPES: Final = [TYPE_PRODUCT, TYPE_TASK]
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 DEFAULT_LINK_PRODUCTS: Final = True
+
+# What happens when something already on the list is added again. Counting it
+# is the useful answer for a product - a second bottle of milk is two bottles,
+# not two lines - and there is nothing to count on a task, so there the one
+# that is already there is kept.
+DUPLICATE_COUNT: Final = "count"
+DUPLICATE_IGNORE: Final = "ignore"
+DUPLICATE_ALLOW: Final = "allow"
+DUPLICATES: Final = [DUPLICATE_COUNT, DUPLICATE_IGNORE, DUPLICATE_ALLOW]
+DEFAULT_DUPLICATES: Final = DUPLICATE_COUNT
+
+# What adding something did: a new line, one more of what was there, or
+# nothing because the list already had it.
+ADDED: Final = "added"
+COUNTED: Final = "counted"
+KEPT: Final = "kept"
 
 # Off until asked for: a notification nobody expected is worse than none.
 DEFAULT_NOTIFY_ARRIVAL: Final = False

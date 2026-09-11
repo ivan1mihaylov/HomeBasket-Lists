@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from .const import COUNTED, DOMAIN
 from .store import STATUS_NEEDS_ACTION, normalize_summary
 
 if TYPE_CHECKING:
@@ -107,12 +107,14 @@ class HomeBasketListsAPI:
         if runtime is None:
             return None
 
-        item, increased = await runtime.async_add_or_increase(summary, **fields)
+        item, outcome = await runtime.async_add_or_increase(summary, **fields)
         return {
             "entry_id": runtime.entry.entry_id,
             "list": runtime.name,
             "item": item,
-            "increased": increased,
+            # "added", "counted" or "kept" - the list decides which.
+            "outcome": outcome,
+            "increased": outcome == COUNTED,
         }
 
     def _describe(self, runtime: ListRuntime) -> dict[str, Any]:

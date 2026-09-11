@@ -32,6 +32,7 @@ from homeassistant.helpers.selector import (
 )
 
 from .const import (
+    CONF_DUPLICATES,
     CONF_ITEM_TYPES,
     CONF_LINK_PRODUCTS,
     CONF_LINKED_LISTS,
@@ -43,6 +44,7 @@ from .const import (
     CONF_NOTIFY_UNASSIGNED,
     CONF_NOTIFY_WATCH,
     CONF_STORES,
+    DEFAULT_DUPLICATES,
     DEFAULT_ITEM_TYPES,
     DEFAULT_LINK_PRODUCTS,
     DEFAULT_NOTIFY_ARRIVAL,
@@ -50,6 +52,7 @@ from .const import (
     DEFAULT_NOTIFY_DWELL,
     DEFAULT_NOTIFY_UNASSIGNED,
     DOMAIN,
+    DUPLICATES,
     ITEM_TYPES,
 )
 
@@ -86,6 +89,15 @@ def _settings(defaults: dict[str, Any]) -> dict:
                 multiple=True,
                 mode=SelectSelectorMode.LIST,
                 translation_key=CONF_ITEM_TYPES,
+            )
+        ),
+        vol.Optional(
+            CONF_DUPLICATES, default=defaults.get(CONF_DUPLICATES, DEFAULT_DUPLICATES)
+        ): SelectSelector(
+            SelectSelectorConfig(
+                options=[SelectOptionDict(value=mode, label=mode) for mode in DUPLICATES],
+                mode=SelectSelectorMode.DROPDOWN,
+                translation_key=CONF_DUPLICATES,
             )
         ),
         vol.Optional(

@@ -41,6 +41,7 @@ another. Each list has:
 | **Keep in sync with** | Built-in to-do lists this one mirrors, in both directions. Any number of them. |
 | **Shops** | Zones that count as shops. An item can be assigned one. |
 | **Kinds of item** | Which kinds this list allows. Both lets each item decide; one makes the whole list that kind. |
+| **Something that is already on the list** | Add to its quantity (default), keep the one that is there, or add a second line. |
 | **Recognise HomeBasket products** | Match item names against HomeBasket, so the card can show pictures and categories. |
 | **Remind me at the shop** | Notify the phone that reported the arrival when someone reaches one of the shops. |
 | **Who to follow** | The people or device trackers watched for arrivals. Empty means everyone in the house. |
@@ -96,10 +97,18 @@ the wrong nutrition to the wrong item, and the suggestions are there for
 everything else.
 
 HomeBasket can also put its scans straight onto one of these lists instead of
-onto a to-do entity — the list is chosen in **HomeBasket's** settings. Scanning
-the same product twice then means two of it: the item's quantity goes up by one
-rather than the line being repeated. Adding something the list already has does
-the same wherever it comes from — the card, an action or a voice assistant.
+onto a to-do entity — the list is chosen in **HomeBasket's** settings.
+
+### Something that is already on the list
+
+Scanning the same product twice means two of it: the item's quantity goes up by
+one rather than the line being repeated. That is the default, and it applies
+wherever the item comes from — a scan, the card, an action or a voice
+assistant. The list's **Something that is already on the list** setting changes
+it to keeping the one that is there, or to writing a second line.
+
+A task has no quantity to raise, so counting keeps the task that is already on
+the list; only *add a second line* ever writes it twice.
 
 Neither integration needs the other. Without HomeBasket, items simply carry no
 product and there are no suggestions; without these lists, HomeBasket keeps

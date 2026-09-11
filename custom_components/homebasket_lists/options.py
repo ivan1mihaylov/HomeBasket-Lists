@@ -12,8 +12,11 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    CONF_DUPLICATES,
     CONF_ITEM_TYPES,
+    DEFAULT_DUPLICATES,
     DEFAULT_ITEM_TYPES,
+    DUPLICATES,
     ITEM_TYPES,
 )
 
@@ -62,3 +65,13 @@ def apply_type(entry: ConfigEntry, fields: dict[str, Any]) -> dict[str, Any]:
         return fields
     kinds = allowed_types(entry)
     return {**fields, "type": kinds[0] if kinds else None}
+
+
+def duplicates(entry: ConfigEntry) -> str:
+    """Return what this list does with something it already has.
+
+    "count" adds to the quantity, "ignore" keeps the one that is there, and
+    "allow" writes a second line.
+    """
+    value = option(entry, CONF_DUPLICATES, DEFAULT_DUPLICATES)
+    return value if value in DUPLICATES else DEFAULT_DUPLICATES

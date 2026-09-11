@@ -15,7 +15,8 @@
           "notify_dwell": "Stay in the shop for",
           "notify_cooldown": "Then stay quiet for",
           "notify_unassigned": "Include items with no shop",
-          "notify_service": "Notify service to fall back on"
+          "notify_service": "Notify service to fall back on",
+          "duplicates": "Something that is already on the list"
         },
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
@@ -27,7 +28,8 @@
           "notify_dwell": "How long you must stay before the reminder is sent, so driving past a shop says nothing.",
           "notify_cooldown": "How long the same shop waits before reminding the same person again.",
           "notify_unassigned": "Items that can be bought anywhere go on every shop's reminder.",
-          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel."
+          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel.",
+          "duplicates": "What happens when a product that is already open on the list is added again — by a scan, the card, an action or a voice assistant. A task has no quantity to raise, so there the one already on the list is kept either way."
         }
       }
     },
@@ -52,7 +54,8 @@
           "notify_dwell": "Stay in the shop for",
           "notify_cooldown": "Then stay quiet for",
           "notify_unassigned": "Include items with no shop",
-          "notify_service": "Notify service to fall back on"
+          "notify_service": "Notify service to fall back on",
+          "duplicates": "Something that is already on the list"
         },
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
@@ -64,7 +67,8 @@
           "notify_dwell": "How long you must stay before the reminder is sent, so driving past a shop says nothing.",
           "notify_cooldown": "How long the same shop waits before reminding the same person again.",
           "notify_unassigned": "Items that can be bought anywhere go on every shop's reminder.",
-          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel."
+          "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel.",
+          "duplicates": "What happens when a product that is already open on the list is added again — by a scan, the card, an action or a voice assistant. A task has no quantity to raise, so there the one already on the list is kept either way."
         }
       }
     }
@@ -74,6 +78,13 @@
       "options": {
         "product": "Products",
         "task": "Tasks"
+      }
+    },
+    "duplicates": {
+      "options": {
+        "count": "Add to its quantity",
+        "ignore": "Keep the one that is there",
+        "allow": "Add a second line"
       }
     }
   },

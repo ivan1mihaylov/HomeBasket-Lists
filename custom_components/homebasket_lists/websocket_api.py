@@ -10,7 +10,7 @@ from homeassistant.components import websocket_api as ws
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN, DURATION_UNITS
+from .const import COUNTED, DOMAIN, DURATION_UNITS
 from .coordinator import ListRuntime
 from .images import InvalidImage
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION
@@ -144,10 +144,12 @@ async def websocket_add_item(
 ) -> None:
     """Add an item to a list."""
     runtime = _runtime(hass, msg["entry_id"])
-    item, increased = await runtime.async_add_or_increase(
+    item, outcome = await runtime.async_add_or_increase(
         msg["summary"], **_item_fields(msg, skip=("summary",))
     )
-    connection.send_result(msg["id"], {"item": item, "increased": increased})
+    connection.send_result(
+        msg["id"], {"item": item, "outcome": outcome, "increased": outcome == COUNTED}
+    )
 
 
 @ws.websocket_command(

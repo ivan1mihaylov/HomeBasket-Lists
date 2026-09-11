@@ -34,6 +34,7 @@ from .const import (
     ATTR_TYPE,
     ATTR_UID,
     ATTR_UNIT,
+    COUNTED,
     DATA_API,
     DOMAIN,
     DURATION_UNITS,
@@ -208,10 +209,10 @@ def _async_register_services(hass: HomeAssistant) -> None:
         runtime = _one(hass, call.data.get(ATTR_LIST))
         fields = _fields(call, *SETTABLE)
 
-        item, increased = await runtime.async_add_or_increase(
+        item, outcome = await runtime.async_add_or_increase(
             call.data[ATTR_SUMMARY], **fields
         )
-        return {"item": item, "increased": increased}
+        return {"item": item, "outcome": outcome, "increased": outcome == COUNTED}
 
     async def async_update_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))

@@ -10,8 +10,18 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .arrivals import ArrivalWatcher
 from .images import ImageStore
-from .const import CONF_STORES, EVENT_UPDATED, SIGNAL_UPDATED
-from .options import allowed_types, apply_type, forced_type
+from .const import (
+    ADDED,
+    CONF_STORES,
+    COUNTED,
+    DUPLICATE_COUNT,
+    DUPLICATE_IGNORE,
+    EVENT_UPDATED,
+    KEPT,
+    SIGNAL_UPDATED,
+    TYPE_TASK,
+)
+from .options import allowed_types, apply_type, duplicates, forced_type
 from .products import ProductLink
 from .store import STATUS_NEEDS_ACTION as STATUS_OPEN, ListStore
 from .sync import ListSync
@@ -97,14 +107,25 @@ class ListRuntime:
 
     async def async_add_or_increase(
         self, summary: str, **fields: Any
-    ) -> tuple[dict[str, Any], bool]:
-        """Add an item, or add one more of it when the list already has it.
+    ) -> tuple[dict[str, Any], str]:
+        """Add an item, and say what that meant for a list that already has it.
 
-        Scanning the second bottle of milk means two bottles of milk, not two
-        lines saying milk. Returns the item and whether it was already there.
+        The list decides: count it up - the second bottle of milk is two
+        bottles, not two lines - keep the one that is there, or write a second
+        line anyway. Returns the item and one of "added", "counted" or "kept".
         """
-        if (existing := self.store.find_by_summary(summary, status=STATUS_OPEN)) is not None:
-            return await self._async_increase(existing, fields), True
+        existing = self.store.find_by_summary(summary, status=STATUS_OPEN)
+        if existing is not None:
+            mode = duplicates(self.entry)
+            if mode == DUPLICATE_IGNORE:
+                return existing, KEPT
+            if mode == DUPLICATE_COUNT:
+                # A task has no quantity to raise, so there the one already on
+                # the list stands; everything else counts up.
+                if existing.get("type") == TYPE_TASK:
+                    return existing, KEPT
+                return await self._async_increase(existing, fields), COUNTED
+            # "allow" falls through and writes a second line.
 
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
@@ -117,7 +138,7 @@ class ListRuntime:
         fields = apply_type(self.entry, fields)
         item = await self.store.async_add(summary=summary, **fields)
         await self.async_changed()
-        return item, False
+        return item, ADDED
 
     async def _async_increase(
         self, item: dict[str, Any], fields: dict[str, Any]
