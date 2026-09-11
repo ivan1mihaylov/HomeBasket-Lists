@@ -15,6 +15,17 @@ handy for badges and zone automations. The lists can also remind you at the
 shop by themselves, read themselves out to a voice assistant, and carry a photo
 of anything HomeBasket has no picture for.
 
+## The three parts
+
+| | What it is |
+| --- | --- |
+| **[HomeBasket](https://github.com/ivan1mihaylov/HomeBasket)** | Scanning, and the products it learns: names, barcodes, pictures, everything the databases know. |
+| **[HomeBasket Card](https://github.com/ivan1mihaylov/HomeBasket-Card)** | Scanning with a phone, for when there is no scanner on a shelf — and the place to look after the products themselves. |
+| **HomeBasket Lists** | This: shopping lists and tasks, using what HomeBasket knows. |
+
+Scanning from a list is the same scan as any other: HomeBasket remembers the
+product, and it turns up in the HomeBasket card's recent scans as well.
+
 ## Languages
 
 **Bulgarian and English.** The integration's own interface, the dashboard card,
@@ -143,6 +154,10 @@ row. It opens the phone's camera, and the product lands on this list — the rig
 kind of item, the shop guessed, counted if it is already there — without the
 HomeBasket card being opened at all. A barcode nobody knows yet is left for
 HomeBasket to name; the list says so and stays as it is.
+
+The product itself is remembered by HomeBasket, exactly as if it had been
+scanned there: it joins the products it knows, and the scan shows in the
+HomeBasket card's recent scans too.
 
 The camera needs a browser with a built-in barcode detector (Chrome, Edge and
 the Android Companion app) over HTTPS. Safari and iOS have none, so there the
