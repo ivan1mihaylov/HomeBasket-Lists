@@ -72,8 +72,17 @@ SPOKEN = {
         ("купих хляб от Пазар", INTENT_COMPLETE, {"item": "хляб", "hb_list": "Пазар"}),
         ("какво има в Ремонт", INTENT_READ, {"hb_list": "Ремонт"}),
         ("какво имам да купя", INTENT_SHOPPING, {}),
+        ("какво трябва да купя", INTENT_SHOPPING, {}),
         ("какво трябва да купя от Пазар", INTENT_SHOPPING, {"hb_list": "Пазар"}),
+        ("какво да купя", INTENT_SHOPPING, {}),
+        ("какво има за пазаруване", INTENT_SHOPPING, {}),
+        ("какво ми трябва от магазина", INTENT_SHOPPING, {}),
         ("какво имам да правя", INTENT_TASKS, {}),
+        ("какво трябва да свърша по Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
+        ("какво има за правене", INTENT_TASKS, {}),
+        ("кажи ми задачите в Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
+        ("купих мляко", INTENT_COMPLETE, {"item": "мляко"}),
+        ("сложи мляко в списъка", INTENT_ADD, {"item": "мляко"}),
         ("какво имам да правя по Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
         ("какви задачи имам в Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
     ],
@@ -82,6 +91,11 @@ SPOKEN = {
         ("complete bread on Пазар", INTENT_COMPLETE, {"item": "bread", "hb_list": "Пазар"}),
         ("what is on Ремонт", INTENT_READ, {"hb_list": "Ремонт"}),
         ("what do I need to buy", INTENT_SHOPPING, {}),
+        ("what should I buy", INTENT_SHOPPING, {}),
+        ("what is left to buy", INTENT_SHOPPING, {}),
+        ("what is on my shopping list", INTENT_SHOPPING, {}),
+        ("what should I do", INTENT_TASKS, {}),
+        ("I bought milk", INTENT_COMPLETE, {"item": "milk"}),
         ("what do I need to buy from Пазар", INTENT_SHOPPING, {"hb_list": "Пазар"}),
         ("what do I have to do", INTENT_TASKS, {}),
         ("what are my tasks on Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
@@ -146,6 +160,29 @@ def main() -> None:
             }
             check(f"{language}: {spoken!r} is understood", result.intent.name, intent_name)
             check(f"{language}: ...with the right slots", slots, expected)
+
+    # Every wording, not only the ones spelled out above: hassil expands the
+    # alternatives and optional parts, and each one has to come back as the
+    # intent it was written for.
+    from hassil.sample import sample_intents
+
+    for language, phrases in SENTENCES.items():
+        parsed = Intents.from_dict(sentence_document(language, phrases, NAMES))
+        seen = 0
+        for intent_name, sampled in sample_intents(
+            parsed, exclude_sentences_with_wildcards=False
+        ):
+            spoken = " ".join(sampled.replace("{item}", "мляко").split())
+            result = recognize(spoken, parsed)
+            if result is None:
+                raise AssertionError(f"{language}: nothing matched {spoken!r}")
+            if result.intent.name != intent_name:
+                raise AssertionError(
+                    f"{language}: {spoken!r} is {result.intent.name}, "
+                    f"not {intent_name}"
+                )
+            seen += 1
+        print(f"  ok  {language}: all {seen} wordings are understood")
 
     print("\nall Assist phrase checks passed")
 

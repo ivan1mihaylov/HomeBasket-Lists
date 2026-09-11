@@ -58,6 +58,7 @@ _package.__path__ = [str(_COMPONENT)]
 sys.modules["homebasket_lists"] = _package
 
 from homebasket_lists.intent import (  # noqa: E402
+    CompleteItemIntent,
     ReadShoppingIntent,
     ReadTasksIntent,
 )
@@ -67,11 +68,31 @@ class FakeStore:
     def __init__(self, items) -> None:
         self.items = items
 
+    def find_by_summary(self, summary, *, status=None):
+        wanted = " ".join(str(summary or "").split()).casefold()
+        for item in self.items:
+            if " ".join(item["summary"].split()).casefold() != wanted:
+                continue
+            if status is None or item["status"] == status:
+                return item
+        return None
+
+    async def async_update(self, uid, **fields):
+        for item in self.items:
+            if item["uid"] == uid:
+                item.update(fields)
+                return item
+        return None
+
 
 class FakeRuntime:
     def __init__(self, name, items) -> None:
         self.name = name
         self.store = FakeStore(items)
+        self.changed = 0
+
+    async def async_changed(self) -> None:
+        self.changed += 1
 
     def zone_name(self, entity_id: str) -> str:
         return {"zone.lidl": "Lidl", "zone.kaufland": "Kaufland"}.get(entity_id, entity_id)
@@ -206,6 +227,22 @@ async def main() -> None:
         await say(shopping, one, language="en"),
         "4 things to buy: from Lidl: мляко 2 бр., хляб; from Kaufland: тиква; "
         "anywhere: батерии.",
+    )
+
+    # --- ticking off without saying which list -----------------------------
+    complete = CompleteItemIntent()
+    check(
+        "an item is ticked off on whichever list still has it",
+        await say(complete, both, item="боя"),
+        "Отметнах боя.",
+    )
+    check("...and it is really ticked off", repairs.store.items[0]["status"], "completed")
+    check("...on the list that had it", repairs.changed, 1)
+    check("...and no other list was touched", market.changed, 0)
+    check(
+        "something on no list at all says so",
+        await say(complete, both, item="ананас"),
+        "ананас го няма в списъците.",
     )
 
     print("\nall spoken answers are right")

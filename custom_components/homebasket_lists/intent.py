@@ -39,64 +39,83 @@ _REGISTERED = f"{DOMAIN}_intents_registered"
 SENTENCES: dict[str, dict[str, list[str]]] = {
     "en": {
         INTENT_ADD: [
-            "add {item} to {hb_list}",
-            "add {item} to the {hb_list} list",
-            "put {item} on {hb_list}",
+            "add {item} to [the] {hb_list} [list]",
+            "put {item} on [the] {hb_list} [list]",
+            "write {item} on [the] {hb_list} [list]",
+            "add {item} to (my|the) list",
         ],
         INTENT_COMPLETE: [
-            "check off {item} from {hb_list}",
-            "mark {item} on {hb_list} as done",
-            "complete {item} on {hb_list}",
+            "(check|tick) off {item} [(from|on|in) {hb_list}]",
+            "mark {item} [(on|in) {hb_list}] as (done|bought|complete)",
+            "complete {item} [(on|in) {hb_list}]",
+            "I (bought|got) {item} [(from|on|in) {hb_list}]",
+            "I (did|finished) {item} [(on|in) {hb_list}]",
+            "remove {item} from {hb_list}",
         ],
         INTENT_READ: [
-            "what is on {hb_list}",
-            "what is left on {hb_list}",
-            "read {hb_list}",
+            "what is (on|left on) {hb_list}",
+            "what does {hb_list} have",
+            "read [out] {hb_list}",
+            "read [out] the {hb_list} list",
+            "tell me what is on {hb_list}",
         ],
         # The list is optional: without one, every list is answered at once.
         INTENT_SHOPPING: [
-            "what do I need to buy [(in|on|from) {hb_list}]",
-            "what do I have to buy [(in|on|from) {hb_list}]",
-            "what is left to buy [(in|on|from) {hb_list}]",
+            "what do I (need|have) to buy [(in|on|from|for) {hb_list}]",
+            "what should I buy [(in|on|from|for) {hb_list}]",
+            "what is left to buy [(in|on|from|for) {hb_list}]",
+            "tell me what I (need|have) to buy [(in|on|from|for) {hb_list}]",
+            "what do I need from the (shop|shops|store)",
             "what is on my shopping list",
         ],
         INTENT_TASKS: [
-            "what do I have to do [(in|on|for) {hb_list}]",
-            "what do I need to do [(in|on|for) {hb_list}]",
+            "what do I (need|have) to do [(in|on|for) {hb_list}]",
+            "what should I do [(in|on|for) {hb_list}]",
             "what is left to do [(in|on|for) {hb_list}]",
             "what are my tasks [(in|on|for) {hb_list}]",
+            "what jobs do I have [(in|on|for) {hb_list}]",
+            "tell me my tasks [(in|on|for) {hb_list}]",
         ],
     },
     "bg": {
         INTENT_ADD: [
-            "добави {item} в {hb_list}",
-            "добави {item} към {hb_list}",
-            "сложи {item} в {hb_list}",
+            "(добави|сложи|запиши|напиши) {item} (в|във|към|на) {hb_list}",
+            "(добави|сложи|запиши|напиши) {item} (в|във|към|на) (списъка|списък) {hb_list}",
+            "(добави|сложи|запиши|напиши) {item} (в|във|към) списъка",
         ],
         INTENT_COMPLETE: [
-            "отметни {item} от {hb_list}",
-            "купих {item} от {hb_list}",
-            "махни {item} от {hb_list}",
+            "отметни {item} [(от|в|във|по) {hb_list}]",
+            "(купих|взех|намерих) {item} [(от|в|във) {hb_list}]",
+            "(свърших|направих|готово) {item} [(от|в|във|по) {hb_list}]",
+            "махни {item} [(от|в|във) {hb_list}]",
+            "отбележи {item} [(от|в|във|по) {hb_list}] като (готово|купено)",
         ],
         INTENT_READ: [
-            "какво има в {hb_list}",
-            "какво остава в {hb_list}",
-            "прочети {hb_list}",
+            "какво (има|остава|е останало) (в|във|по) {hb_list}",
+            "какво (има|остава) (в|във) (списъка|списък) {hb_list}",
+            "прочети [ми] {hb_list}",
+            "кажи ми какво (има|остава) (в|във|по) {hb_list}",
         ],
         INTENT_SHOPPING: [
-            "какво имам да купя [(в|от|за) {hb_list}]",
-            "какво трябва да купя [(в|от|за) {hb_list}]",
-            "какво има за купуване [(в|от|за) {hb_list}]",
-            "какво остава за купуване [(в|от|за) {hb_list}]",
+            "какво (имам|трябва|остава) да купя [(в|във|от|за) {hb_list}]",
+            "какво да купя [(в|във|от|за) {hb_list}]",
+            "какво (има|остава) за купуване [(в|във|от|за) {hb_list}]",
+            "какво (има|остава) за пазаруване [(в|във|от|за) {hb_list}]",
+            "кажи ми какво (имам|трябва) да купя [(в|във|от|за) {hb_list}]",
+            "какво ми трябва от (магазина|магазините|пазара)",
+            "какво (има|остава) за пазар",
         ],
         INTENT_TASKS: [
-            "какво имам да правя [(в|по|за) {hb_list}]",
-            "какво трябва да правя [(в|по|за) {hb_list}]",
-            "какво остава за правене [(в|по|за) {hb_list}]",
-            "какви задачи имам [(в|по|за) {hb_list}]",
+            "какво (имам|трябва) да (правя|свърша|направя) [(в|във|по|за) {hb_list}]",
+            "какво да (правя|свърша|направя) [(в|във|по|за) {hb_list}]",
+            "какво (има|остава) за (правене|вършене|свършване) [(в|във|по|за) {hb_list}]",
+            "какви задачи (имам|има|остават) [(в|във|по|за) {hb_list}]",
+            "кажи ми задачите [(в|във|по|за) {hb_list}]",
+            "какво ми (остава|предстои) (по|за) {hb_list}",
         ],
     },
 }
+
 
 RESPONSES: dict[str, dict[str, str]] = {
     "en": {
@@ -106,6 +125,7 @@ RESPONSES: dict[str, dict[str, str]] = {
         "empty": "{list} is empty.",
         "items": "{list} has {items}.",
         "no_list": "I could not find that list.",
+        "any_list": "any list",
         "one_thing": "1 thing to buy",
         "many_things": "{count} things to buy",
         "one_task": "1 thing to do",
@@ -125,6 +145,7 @@ RESPONSES: dict[str, dict[str, str]] = {
         "empty": "{list} е празен.",
         "items": "В {list} има {items}.",
         "no_list": "Не намерих такъв списък.",
+        "any_list": "списъците",
         "one_thing": "1 нещо за купуване",
         "many_things": "{count} неща за купуване",
         "one_task": "1 задача",
@@ -305,17 +326,34 @@ class CompleteItemIntent(_ListIntent):
         response = intent_obj.create_response()
 
         summary = (slots.get("item", {}).get("value") or "").strip()
-        runtime = _pick_list(hass, slots.get("hb_list", {}).get("value"))
-        if runtime is None:
+        named = slots.get("hb_list", {}).get("value")
+        runtimes = _pick_lists(hass, named)
+        if not runtimes:
             response.async_set_speech(_words(language, "no_list"))
             return response
 
-        item = runtime.store.find_by_summary(summary, status=STATUS_NEEDS_ACTION)
-        if item is None:
+        # "купих мляко" does not say where it was written down, so whichever
+        # list still has it open is the one meant.
+        runtime = next(
+            (
+                candidate
+                for candidate in runtimes
+                if candidate.store.find_by_summary(summary, status=STATUS_NEEDS_ACTION)
+            ),
+            None,
+        )
+        if runtime is None:
+            where = (
+                runtimes[0].name
+                if len(runtimes) == 1
+                else _words(language, "any_list")
+            )
             response.async_set_speech(
-                _words(language, "not_found", item=summary, list=runtime.name)
+                _words(language, "not_found", item=summary, list=where)
             )
             return response
+
+        item = runtime.store.find_by_summary(summary, status=STATUS_NEEDS_ACTION)
 
         await runtime.store.async_update(item["uid"], status=STATUS_COMPLETED)
         await runtime.async_changed()

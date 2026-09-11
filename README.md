@@ -160,7 +160,7 @@ is where Assist looks for phrases a custom integration adds.
 | You say | What happens |
 | --- | --- |
 | *добави мляко в Пазаруване* / *add milk to Shopping* | The item is added, and linked to a HomeBasket product when the name matches. |
-| *отметни мляко от Пазаруване* / *check off milk from Shopping* | The item is ticked off, here and in every linked list. |
+| *купих мляко* / *I bought milk* | Ticked off on whichever list still has it, here and in every linked list. |
 | *какво има в Пазаруване* / *what is on Shopping* | Assist reads out what is left. |
 | *какво имам да купя* / *what do I need to buy* | The products still open, grouped by the shop to buy them in, each with its quantity. |
 | *какво имам да правя* / *what do I have to do* | The tasks still open, each with how long it takes. |
@@ -170,6 +170,12 @@ The last two answer for every list at once when no list is named, and say which
 list each thing is on. They ask about kinds, so *what do I need to buy* returns
 the products and *what do I have to do* the tasks — an item with no kind is
 neither, and is only read out by *what is on <list>*.
+
+Each line has several wordings: *какво имам да купя*, *какво трябва да купя*,
+*какво да купя*, *какво има за пазаруване*, *какво ми трябва от магазина* all
+ask the same thing, and so do *отметни*, *купих*, *свърших*, *махни*. The full
+set is in `intent.py`, and every one of them is checked against the matcher
+Assist uses.
 
 The list name can be left out when there is only one list. The files are
 rewritten when a list is added or renamed, and are left alone when nothing
