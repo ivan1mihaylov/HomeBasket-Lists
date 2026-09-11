@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.13.0';
+const VERSION = '0.13.1';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -1830,7 +1830,9 @@ class HomeBasketListsCard extends HTMLElement {
           // Every item can carry a photo. A product HomeBasket knows brings
           // one along, and that is what shows until you take your own.
           {
-            const fromProduct = item.product?.image || null;
+            // What a database supplied. A picture someone took of the
+            // product is held by HomeBasket and fetched below.
+            let fromProduct = item.product?.image || null;
             const file = el('input', {
               type: 'file',
               accept: 'image/*',
@@ -1908,6 +1910,28 @@ class HomeBasketListsCard extends HTMLElement {
               }
             };
             drawPhoto();
+
+            // The product's own picture - one someone took, which HomeBasket
+            // holds rather than a database - arrives afterwards too. Without
+            // this the sheet showed nothing for a product whose only picture
+            // is that one, while the list itself showed it.
+            const productCode = item.product?.code;
+            if (!fromProduct && item.product?.has_photo && productCode) {
+              const cached = this._photos.get(productCode);
+              if (cached) {
+                fromProduct = cached;
+                drawPhoto();
+              } else {
+                this._call('homebasket_lists/product/photo', { code: productCode })
+                  .then(({ photo }) => {
+                    if (!photo) return;
+                    this._photos.set(productCode, photo);
+                    fromProduct = photo;
+                    drawPhoto();
+                  })
+                  .catch(() => {});
+              }
+            }
 
             // A stored photo arrives afterwards; redraw once it is here.
             if (item.has_photo) {
