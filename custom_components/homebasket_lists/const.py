@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Final
 
 DOMAIN: Final = "homebasket_lists"
-VERSION: Final = "0.1.0"
 
 # Where the public API object is published for other integrations.
 DATA_API: Final = "homebasket_lists_api"
@@ -109,3 +110,20 @@ SERVICE_GET_ITEMS: Final = "get_items"
 SERVICE_SYNC_NOW: Final = "sync_now"
 
 STORAGE_VERSION: Final = 1
+
+
+def _installed_version() -> str:
+    """Return the version this integration is installed as.
+
+    It is read from the manifest rather than written down twice, so the card's
+    URL changes with every release and a browser fetches the new one instead of
+    the copy it kept.
+    """
+    try:
+        manifest = Path(__file__).parent / "manifest.json"
+        return json.loads(manifest.read_text(encoding="utf-8"))["version"]
+    except (OSError, ValueError, KeyError):  # pragma: no cover - never shipped
+        return "0.0.0"
+
+
+VERSION: Final = _installed_version()

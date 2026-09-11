@@ -1,15 +1,9 @@
-**Scan straight onto a list.** With HomeBasket installed there is a barcode
-button beside the **+** in the add row. It opens the camera, HomeBasket says
-what the barcode is, and the product lands on this list as the right kind of
-item — the shop guessed, the count raised if it is already there — without the
-HomeBasket card being opened at all. The product is remembered by HomeBasket
-exactly as if it had been scanned there, and the scan shows in the HomeBasket
-card's recent scans too (that part needs HomeBasket 0.9.0 and its card 0.9.0).
+**An item takes its kind from the database that knew its barcode.** Anything
+that arrives with a barcode but without a kind — a scan from the HomeBasket
+card, an older HomeBasket, a product learned before groceries and things were
+told apart — now asks HomeBasket what the product turned out to be. Open Food
+Facts means groceries, Open Products Facts means a thing. Only a product none
+of the databases knows falls back to the first kind the list allows.
 
-A barcode nobody knows yet is left for HomeBasket to name; the list says so and
-stays as it is. Without HomeBasket the button is not there at all. Safari and
-iOS have no barcode detector of their own, so the card takes a `zxing_url` the
-same way the HomeBasket card does.
-
-**A picture on the list opens whole.** Tapping a thumbnail shows it over the
-screen; tapping it again — or Escape — puts it away.
+A line that was already on the list and never had a kind learns one when it is
+scanned, instead of staying without.
