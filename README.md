@@ -109,7 +109,8 @@ using its to-do entity.
 
 An item that HomeBasket has no picture for — a task, a loose vegetable, a part
 from the hardware shop — can carry a photo of its own. Open the item and use the
-square button to take one with the phone's camera or pick one from the gallery;
+square at the top to take one with the phone's camera or pick one from the
+gallery;
 it shows on the item's row from then on. Nothing is written until **Save**, and
 the × on the picture removes it.
 

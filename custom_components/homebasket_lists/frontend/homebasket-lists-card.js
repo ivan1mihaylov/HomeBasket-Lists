@@ -486,7 +486,15 @@ const STYLES = `
   .dialog textarea { min-height: 74px; resize: vertical; }
 
   /* A photo of the item itself, for what HomeBasket has no picture of. */
-  .photo-box { position: relative; width: 124px; height: 124px; margin-bottom: 16px; }
+  /* At the top of the sheet, in the middle of it. */
+  .photo-top { text-align: center; }
+  .photo-top label { display: block; }
+  .photo-box {
+    position: relative;
+    width: 124px;
+    height: 124px;
+    margin: 0 auto 16px;
+  }
   .photo-add {
     width: 100%;
     height: 100%;
@@ -1403,10 +1411,6 @@ class HomeBasketListsCard extends HTMLElement {
             );
           }
 
-          content.appendChild(el('label', { text: t.name }));
-          fields.summary = el('input', { type: 'text', value: item.summary || '' });
-          content.appendChild(fields.summary);
-
           // A product HomeBasket knows brings its own picture; everything
           // else - a task, a loose vegetable, a part from the hardware shop -
           // can have one of its own.
@@ -1484,8 +1488,15 @@ class HomeBasketListsCard extends HTMLElement {
                 .catch(() => {});
             }
 
-            content.append(el('label', { text: t.photo }), box, file);
+            content.appendChild(
+              el('div', { class: 'photo-top' }, el('label', { text: t.photo }), box, file),
+            );
           }
+
+          content.appendChild(el('label', { text: t.name }));
+          fields.summary = el('input', { type: 'text', value: item.summary || '' });
+          content.appendChild(fields.summary);
+
 
           const fixed = this._fixedType();
           if (fixed === null) {
