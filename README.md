@@ -11,7 +11,20 @@ HomeBasket product. They are still spoken to like the built-in lists, and they
 still stay in step with them.
 
 Each list gets one entity, `sensor.<list>_open_items`, counting what is left —
-handy for badges and zone automations.
+handy for badges and zone automations. The lists can also remind you at the
+shop by themselves, read themselves out to a voice assistant, and carry a photo
+of anything HomeBasket has no picture for.
+
+## Languages
+
+**Bulgarian and English.** The integration's own interface, the dashboard card,
+the Assist phrases and the answers spoken back all exist in both, and follow the
+language of the person using them — the card takes Home Assistant's language
+unless its `language` option says otherwise, and a voice answer comes back in
+the language it was asked in. Anything else falls back to English.
+
+The examples below are in English; every one of them has a Bulgarian
+counterpart, written into `custom_sentences/bg/` next to the English ones.
 
 ## Installation
 
@@ -119,8 +132,7 @@ using its to-do entity.
 An item that HomeBasket has no picture for — a task, a loose vegetable, a part
 from the hardware shop — can carry a photo of its own. Open the item and use the
 square at the top to take one with the phone's camera or pick one from the
-gallery;
-it shows on the item's row from then on. Nothing is written until **Save**, and
+gallery; it shows on the item's row from then on. Nothing is written until **Save**, and
 the × on the picture removes it.
 
 Photos are shrunk before they are sent, kept in Home Assistant's own storage
@@ -170,7 +182,7 @@ automation:
     actions:
       - action: homebasket_lists.get_items
         data:
-          list: Пазаруване
+          list: Shopping
           store: zone.kaufland
           status: needs_action
         response_variable: shopping
@@ -192,28 +204,29 @@ is where Assist looks for phrases a custom integration adds.
 
 | You say | What happens |
 | --- | --- |
-| *добави мляко в Пазаруване* / *add milk to Shopping* | The item is added, and linked to a HomeBasket product when the name matches. |
-| *купих мляко* / *I bought milk* | Ticked off on whichever list still has it, here and in every linked list. |
-| *какво има в Пазаруване* / *what is on Shopping* | Assist reads out what is left. |
-| *какво имам да купя* / *what do I need to buy* | The products still open, grouped by the shop to buy them in, each with its quantity. |
-| *какво имам да правя* / *what do I have to do* | The tasks still open, each with how long it takes. |
-| *какво имам да правя по Ремонт* / *what are my tasks on Ремонт* | The same, for one list. |
-
-Quantities are said rather than read out: an item written *яйца, 5 бр.* is
-spoken as *5 броя яйца* — how many first, as it is said out loud — and the same
-for кг, г, л and мл. A unit the answer's language does not know is said exactly
-as it was typed, and English keeps its own order, with a dash: *eggs - 5 pcs*.
+| *add milk to Shopping* | The item is added, and linked to a HomeBasket product when the name matches. |
+| *I bought milk* | Ticked off on whichever list still has it, here and in every linked list. |
+| *mark milk as done* | The same, said the other way. |
+| *what is on Shopping* | Assist reads out what is left. |
+| *what do I need to buy* | The products still open, grouped by the shop to buy them in, each with its quantity. |
+| *what do I have to do* | The tasks still open, each with how long it takes. |
+| *what are my tasks on Repairs* | The same, for one list. |
 
 The last two answer for every list at once when no list is named, and say which
 list each thing is on. They ask about kinds, so *what do I need to buy* returns
 the products and *what do I have to do* the tasks — an item with no kind is
-neither, and is only read out by *what is on <list>*.
+neither, and is only read out by *what is on &lt;list&gt;*.
 
-Each line has several wordings: *какво имам да купя*, *какво трябва да купя*,
-*какво да купя*, *какво има за пазаруване*, *какво ми трябва от магазина* all
-ask the same thing, and so do *отметни*, *купих*, *свърших*, *махни*. The full
-set is in `intent.py`, and every one of them is checked against the matcher
-Assist uses.
+Quantities are said rather than read out: an item written *eggs, 5 pcs* is
+spoken as *eggs - 5 pieces*, and kg, g, l and ml are said in full too. A unit
+the answer's language does not know is said exactly as it was typed.
+
+Each line has several wordings: *what do I need to buy*, *what should I buy*,
+*what is left to buy*, *what is on my shopping list* and *what do I need from
+the shop* all ask the same thing, and so do *check off*, *tick off*, *complete*,
+*I bought* and *I finished*. Bulgarian has the same spread. The full set is in
+`intent.py`, and every one of the 800-odd wordings is checked against the
+matcher Assist uses.
 
 The list name can be left out when there is only one list. The files are
 rewritten when a list is added or renamed, and are left alone when nothing
@@ -244,7 +257,7 @@ for board in api.lists:
 to_buy = api.items_for_store("zone.kaufland")
 
 # Put something on a list, or add one more of it if it is already there.
-result = await api.async_add_item("Мляко", quantity=1, unit="бр.")
+result = await api.async_add_item("Milk", quantity=1, unit="pcs")
 if result and result["increased"]:
     print(result["list"], "now has", result["item"]["quantity"])
 ```
@@ -265,7 +278,7 @@ type: custom:homebasket-lists-card
 | --- | --- | --- |
 | `title` | the list's name | Card heading. |
 | `list` | all | One list, picked from those that exist. Empty shows a tab per list. |
-| `language` | Home Assistant's | `bg` or `en`. |
+| `language` | Home Assistant's | `bg` or `en`. Leave empty to follow Home Assistant. |
 | `group_by_store` | `true` | Group open items under their shop. |
 | `show_completed` | `true` | Show what is already ticked off. |
 
@@ -283,9 +296,11 @@ python3 tests/test_voice.py     # what the assistant says back
 python3 tests/test_photos.py    # the photos an item can carry
 ```
 
-The first stands a fake to-do list up and walks an item through adding, ticking
-and deleting from both sides. The last walks someone into a shop, out of it
-again, and back in.
+The sync test stands a fake to-do list up and walks an item through adding,
+ticking and deleting from both sides; the arrivals test walks someone into a
+shop, out of it again and back in; the sentences test expands every wording of
+every phrase and checks each one comes back as the intent it was written for;
+the photo test writes real files in a temporary folder.
 
 ## License
 
