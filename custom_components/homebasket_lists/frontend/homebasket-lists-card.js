@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.13.2';
+const VERSION = '0.13.3';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -1581,9 +1581,24 @@ class HomeBasketListsCard extends HTMLElement {
     if (!this._suggestBox) return;
 
     if (!this._suggestions.length) {
+      this._drawnSuggestions = null;
       this._suggestBox.replaceChildren();
       return;
     }
+
+    // Typing another letter usually comes back with the same products in the
+    // same order. Drawing them again anyway moves the rows under whatever
+    // finger is on its way down, so only a real change is drawn; a change of
+    // which one is highlighted is a change of one attribute.
+    const drawn = this._suggestions.map((product) => product.code).join('\u0000');
+    if (drawn === this._drawnSuggestions) {
+      const options = this._suggestBox.querySelectorAll('.option');
+      options.forEach((option, index) => {
+        option.setAttribute('aria-selected', String(index === this._suggestIndex));
+      });
+      return;
+    }
+    this._drawnSuggestions = drawn;
 
     const t = this._t;
     const box = el(
@@ -1613,12 +1628,13 @@ class HomeBasketListsCard extends HTMLElement {
           {
             class: 'option',
             'aria-selected': String(index === this._suggestIndex),
+            'data-code': product.code,
             on: {
-              // Before blur, so the field losing focus cannot cancel the pick.
-              pointerdown: (event) => {
-                event.preventDefault();
-                this._pickSuggestion(product);
-              },
+              // Holding the focus is what this is for: without it the field
+              // blurs and the list is gone before the tap lands. Which row was
+              // picked is settled when the finger is lifted, by the listener
+              // on the box - see _build.
+              pointerdown: (event) => event.preventDefault(),
             },
           },
           thumb,
@@ -2382,6 +2398,22 @@ class HomeBasketListsCard extends HTMLElement {
     });
     this._input.addEventListener('input', (event) => this._onTyping(event.target.value));
     this._suggestBox = el('div', { class: 'suggest' });
+    // One listener for the whole box rather than one per row. A finger that
+    // lands a little low and slides onto the row it meant lifts over a
+    // different row than it came down on, and then the click lands on the box
+    // instead of on either row - so the row under the point it was lifted at
+    // is the one that was meant. Acting when the finger lands, as this used
+    // to, took the row it happened to touch first: the one below.
+    this._suggestBox.addEventListener('click', (event) => {
+      const row =
+        event.target.closest?.('.option') ||
+        this.shadowRoot
+          .elementFromPoint(event.clientX, event.clientY)
+          ?.closest?.('.option');
+      if (!row) return;
+      const product = this._suggestions.find((entry) => entry.code === row.dataset.code);
+      if (product) this._pickSuggestion(product);
+    });
     this._addButton = el(
       'button',
       {
