@@ -22,7 +22,7 @@ import yaml
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, intent
 
-from .const import DOMAIN
+from .const import DOMAIN, TYPE_PRODUCT, TYPE_TASK
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION, normalize_summary
 
 _LOGGER = logging.getLogger(__name__)
@@ -30,6 +30,8 @@ _LOGGER = logging.getLogger(__name__)
 INTENT_ADD = "HomeBasketListAddItem"
 INTENT_COMPLETE = "HomeBasketListCompleteItem"
 INTENT_READ = "HomeBasketListReadItems"
+INTENT_SHOPPING = "HomeBasketListReadShopping"
+INTENT_TASKS = "HomeBasketListReadTasks"
 
 _REGISTERED = f"{DOMAIN}_intents_registered"
 
@@ -51,6 +53,19 @@ SENTENCES: dict[str, dict[str, list[str]]] = {
             "what is left on {hb_list}",
             "read {hb_list}",
         ],
+        # The list is optional: without one, every list is answered at once.
+        INTENT_SHOPPING: [
+            "what do I need to buy [(in|on|from) {hb_list}]",
+            "what do I have to buy [(in|on|from) {hb_list}]",
+            "what is left to buy [(in|on|from) {hb_list}]",
+            "what is on my shopping list",
+        ],
+        INTENT_TASKS: [
+            "what do I have to do [(in|on|for) {hb_list}]",
+            "what do I need to do [(in|on|for) {hb_list}]",
+            "what is left to do [(in|on|for) {hb_list}]",
+            "what are my tasks [(in|on|for) {hb_list}]",
+        ],
     },
     "bg": {
         INTENT_ADD: [
@@ -68,6 +83,18 @@ SENTENCES: dict[str, dict[str, list[str]]] = {
             "какво остава в {hb_list}",
             "прочети {hb_list}",
         ],
+        INTENT_SHOPPING: [
+            "какво имам да купя [(в|от|за) {hb_list}]",
+            "какво трябва да купя [(в|от|за) {hb_list}]",
+            "какво има за купуване [(в|от|за) {hb_list}]",
+            "какво остава за купуване [(в|от|за) {hb_list}]",
+        ],
+        INTENT_TASKS: [
+            "какво имам да правя [(в|по|за) {hb_list}]",
+            "какво трябва да правя [(в|по|за) {hb_list}]",
+            "какво остава за правене [(в|по|за) {hb_list}]",
+            "какви задачи имам [(в|по|за) {hb_list}]",
+        ],
     },
 }
 
@@ -79,6 +106,17 @@ RESPONSES: dict[str, dict[str, str]] = {
         "empty": "{list} is empty.",
         "items": "{list} has {items}.",
         "no_list": "I could not find that list.",
+        "one_thing": "1 thing to buy",
+        "many_things": "{count} things to buy",
+        "one_task": "1 thing to do",
+        "many_tasks": "{count} things to do",
+        "nothing_to_buy": "Nothing to buy.",
+        "nothing_to_buy_in": "Nothing to buy on {list}.",
+        "nothing_to_do": "Nothing to do.",
+        "nothing_to_do_in": "Nothing to do on {list}.",
+        "from_shop": "from {shop}: {items}",
+        "no_shop": "anywhere: {items}",
+        "in_list": "{list} — {items}",
     },
     "bg": {
         "added": "Добавих {item} в {list}.",
@@ -87,7 +125,24 @@ RESPONSES: dict[str, dict[str, str]] = {
         "empty": "{list} е празен.",
         "items": "В {list} има {items}.",
         "no_list": "Не намерих такъв списък.",
+        "one_thing": "1 нещо за купуване",
+        "many_things": "{count} неща за купуване",
+        "one_task": "1 задача",
+        "many_tasks": "{count} задачи",
+        "nothing_to_buy": "Нямаш нищо за купуване.",
+        "nothing_to_buy_in": "В {list} няма нищо за купуване.",
+        "nothing_to_do": "Нямаш задачи.",
+        "nothing_to_do_in": "В {list} няма задачи.",
+        "from_shop": "от {shop}: {items}",
+        "no_shop": "където и да е: {items}",
+        "in_list": "{list} — {items}",
     },
+}
+
+
+SHORT_UNITS: dict[str, dict[str, str]] = {
+    "en": {"minutes": "min", "hours": "h", "days": "days"},
+    "bg": {"minutes": "мин", "hours": "ч", "days": "дни"},
 }
 
 
@@ -98,6 +153,65 @@ def _phrases(language: str) -> dict[str, Any]:
 def _words(language: str, key: str, **fields: Any) -> str:
     table = RESPONSES.get(language, RESPONSES["en"])
     return table[key].format(**fields)
+
+
+def _number(value: Any) -> str | None:
+    """Return a quantity as it would be said: 2, not 2.0."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return str(int(number)) if number.is_integer() else f"{number:g}"
+
+
+def _amount(item: dict[str, Any]) -> str:
+    """Return a product with its quantity: "мляко 2 бр."."""
+    summary = item.get("summary") or ""
+    if (number := _number(item.get("quantity"))) is None:
+        return summary
+    unit = (item.get("unit") or "").strip()
+    return " ".join(part for part in (summary, number, unit) if part)
+
+
+def _task(item: dict[str, Any], language: str) -> str:
+    """Return a task with how long it takes, when that is known."""
+    summary = item.get("summary") or ""
+    if (number := _number(item.get("duration"))) is None:
+        return summary
+    units = SHORT_UNITS.get(language, SHORT_UNITS["en"])
+    unit = units.get(item.get("duration_unit") or "", "")
+    return " ".join(part for part in (summary, number, unit) if part)
+
+
+def _by_shop(runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+    """Return the products of one list, grouped by the shop to buy them in.
+
+    Saying the shop is the point of the question: a list of twenty things is
+    useless, four things in Lidl and two anywhere is a plan.
+    """
+    groups: dict[str | None, list[dict[str, Any]]] = {}
+    for item in items:
+        groups.setdefault(item.get("store") or None, []).append(item)
+
+    parts = []
+    for store, group in groups.items():
+        names = ", ".join(_amount(item) for item in group)
+        if store:
+            parts.append(
+                _words(language, "from_shop", shop=runtime.zone_name(store), items=names)
+            )
+        else:
+            parts.append(_words(language, "no_shop", items=names))
+    return "; ".join(parts)
+
+
+def _open_items(runtime: Any, kind: str) -> list[dict[str, Any]]:
+    """Return one list's open items of one kind."""
+    return [
+        item
+        for item in runtime.store.items
+        if item["status"] == STATUS_NEEDS_ACTION and item.get("type") == kind
+    ]
 
 
 def _runtimes(hass: HomeAssistant) -> list[Any]:
@@ -120,6 +234,19 @@ def _pick_list(hass: HomeAssistant, name: str | None) -> Any | None:
         if wanted in normalize_summary(runtime.name):
             return runtime
     return None
+
+
+def _pick_lists(hass: HomeAssistant, name: str | None) -> list[Any] | None:
+    """Return the lists a question is about.
+
+    A named list is that one; no name at all means every list, since "what do
+    I have to buy" is a question about the shopping, not about one list.
+    Returns None when the name matched nothing.
+    """
+    if not name:
+        return _runtimes(hass)
+    runtime = _pick_list(hass, name)
+    return None if runtime is None else [runtime]
 
 
 class _ListIntent(intent.IntentHandler):
@@ -223,6 +350,99 @@ class ReadItemsIntent(_ListIntent):
         return response
 
 
+class _ReadKindIntent(_ListIntent):
+    """Answer "what do I have to buy" and "what do I have to do".
+
+    Both questions are the same shape: take one kind of item from one list or
+    from all of them, and say what is left. Only the wording differs.
+    """
+
+    kind: str
+    one: str
+    many: str
+    nothing: str
+    nothing_in: str
+
+    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+        raise NotImplementedError
+
+    async def async_handle(self, intent_obj: intent.Intent) -> intent.IntentResponse:
+        """Handle the intent."""
+        hass = intent_obj.hass
+        slots = self.async_validate_slots(intent_obj.slots)
+        language = self._language(intent_obj)
+        response = intent_obj.create_response()
+
+        named = slots.get("hb_list", {}).get("value")
+        runtimes = _pick_lists(hass, named)
+        if runtimes is None or not runtimes:
+            response.async_set_speech(_words(language, "no_list"))
+            return response
+
+        found = [
+            (runtime, items)
+            for runtime in runtimes
+            if (items := _open_items(runtime, self.kind))
+        ]
+        if not found:
+            # Naming a list makes the answer about that list, so say which.
+            if named and len(runtimes) == 1:
+                speech = _words(language, self.nothing_in, list=runtimes[0].name)
+            else:
+                speech = _words(language, self.nothing)
+            response.async_set_speech(speech)
+            return response
+
+        count = sum(len(items) for _, items in found)
+        head = (
+            _words(language, self.one)
+            if count == 1
+            else _words(language, self.many, count=count)
+        )
+
+        sections = []
+        for runtime, items in found:
+            body = self._describe(runtime, items, language)
+            # Which list something is on only matters when more than one
+            # answered; otherwise it is just noise.
+            sections.append(
+                _words(language, "in_list", list=runtime.name, items=body)
+                if len(found) > 1
+                else body
+            )
+
+        response.async_set_speech(f"{head}: {'. '.join(sections)}.")
+        return response
+
+
+class ReadShoppingIntent(_ReadKindIntent):
+    """Say what is left to buy, and where."""
+
+    intent_type = INTENT_SHOPPING
+    kind = TYPE_PRODUCT
+    one = "one_thing"
+    many = "many_things"
+    nothing = "nothing_to_buy"
+    nothing_in = "nothing_to_buy_in"
+
+    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+        return _by_shop(runtime, items, language)
+
+
+class ReadTasksIntent(_ReadKindIntent):
+    """Say what is left to do."""
+
+    intent_type = INTENT_TASKS
+    kind = TYPE_TASK
+    one = "one_task"
+    many = "many_tasks"
+    nothing = "nothing_to_do"
+    nothing_in = "nothing_to_do_in"
+
+    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+        return ", ".join(_task(item, language) for item in items)
+
+
 async def async_setup_intents(hass: HomeAssistant) -> None:
     """Register the intents.
 
@@ -234,7 +454,13 @@ async def async_setup_intents(hass: HomeAssistant) -> None:
         return
     hass.data[_REGISTERED] = True
 
-    for handler in (AddItemIntent(), CompleteItemIntent(), ReadItemsIntent()):
+    for handler in (
+        AddItemIntent(),
+        CompleteItemIntent(),
+        ReadItemsIntent(),
+        ReadShoppingIntent(),
+        ReadTasksIntent(),
+    ):
         intent.async_register(hass, handler)
 
 

@@ -57,6 +57,8 @@ from homebasket_lists.intent import (  # noqa: E402
     INTENT_ADD,
     INTENT_COMPLETE,
     INTENT_READ,
+    INTENT_SHOPPING,
+    INTENT_TASKS,
     SENTENCES,
     sentence_document,
 )
@@ -66,14 +68,23 @@ NAMES = ["Пазар", "Ремонт"]
 # What someone would actually say, and what should come out of it.
 SPOKEN = {
     "bg": [
-        ("добави мляко в Пазар", INTENT_ADD, "мляко", "Пазар"),
-        ("купих хляб от Пазар", INTENT_COMPLETE, "хляб", "Пазар"),
-        ("какво има в Ремонт", INTENT_READ, None, "Ремонт"),
+        ("добави мляко в Пазар", INTENT_ADD, {"item": "мляко", "hb_list": "Пазар"}),
+        ("купих хляб от Пазар", INTENT_COMPLETE, {"item": "хляб", "hb_list": "Пазар"}),
+        ("какво има в Ремонт", INTENT_READ, {"hb_list": "Ремонт"}),
+        ("какво имам да купя", INTENT_SHOPPING, {}),
+        ("какво трябва да купя от Пазар", INTENT_SHOPPING, {"hb_list": "Пазар"}),
+        ("какво имам да правя", INTENT_TASKS, {}),
+        ("какво имам да правя по Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
+        ("какви задачи имам в Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
     ],
     "en": [
-        ("add milk to Пазар", INTENT_ADD, "milk", "Пазар"),
-        ("complete bread on Пазар", INTENT_COMPLETE, "bread", "Пазар"),
-        ("what is on Ремонт", INTENT_READ, None, "Ремонт"),
+        ("add milk to Пазар", INTENT_ADD, {"item": "milk", "hb_list": "Пазар"}),
+        ("complete bread on Пазар", INTENT_COMPLETE, {"item": "bread", "hb_list": "Пазар"}),
+        ("what is on Ремонт", INTENT_READ, {"hb_list": "Ремонт"}),
+        ("what do I need to buy", INTENT_SHOPPING, {}),
+        ("what do I need to buy from Пазар", INTENT_SHOPPING, {"hb_list": "Пазар"}),
+        ("what do I have to do", INTENT_TASKS, {}),
+        ("what are my tasks on Ремонт", INTENT_TASKS, {"hb_list": "Ремонт"}),
     ],
 }
 
@@ -124,15 +135,17 @@ def main() -> None:
 
     for language, phrases in SENTENCES.items():
         parsed = Intents.from_dict(sentence_document(language, phrases, NAMES))
-        for spoken, intent_name, item, list_name in SPOKEN[language]:
+        for spoken, intent_name, expected in SPOKEN[language]:
             result = recognize(spoken, parsed)
             if result is None:
                 raise AssertionError(f"{language}: nothing matched {spoken!r}")
-            slots = {entity.name: entity.value for entity in result.entities.values()}
+            slots = {
+                name: entity.value
+                for name, entity in result.entities.items()
+                if entity.value is not None
+            }
             check(f"{language}: {spoken!r} is understood", result.intent.name, intent_name)
-            check(f"{language}: ...on the right list", slots.get("hb_list"), list_name)
-            if item is not None:
-                check(f"{language}: ...about the right thing", slots.get("item"), item)
+            check(f"{language}: ...with the right slots", slots, expected)
 
     print("\nall Assist phrase checks passed")
 
