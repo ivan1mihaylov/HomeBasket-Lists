@@ -241,11 +241,61 @@ async def main() -> None:
     )
     hass.data["homebasket_api"] = homebasket
 
+    # --- the kind comes from the database that knew the barcode ------------
+    class Databases(FakeHomeBasket):
+        """HomeBasket with two products, each known by a different database."""
+
+        known = {
+            "3800230410016": {"code": "3800230410016", "name": "Velingrad water 1.5 l", "kind": "food"},
+            "4008496932504": {"code": "4008496932504", "name": "Zewa towels", "kind": None},
+        }
+        details = {"4008496932504": {"label": "Zewa towels", "kind": "product"}}
+
+        @property
+        def products(self):
+            return list(self.known.values())
+
+        def get(self, code):
+            return self.known.get(code)
+
+        async def async_get_details(self, code, *, refresh=False):
+            self.asked.append(code)
+            return self.details.get(code)
+
+    databases = Databases()
+    hass.data["homebasket_api"] = databases
+
+    # An item put on the list by HomeBasket itself, which said nothing about
+    # what the product is: the list asks rather than leaves it without a kind.
+    item = await runtime.async_add_item("Velingrad water 1.5 l", product_code="3800230410016")
+    check("a barcode Open Food Facts knew lands as a grocery", item["type"], "food")
+    check("...without asking the databases again", databases.asked, [])
+
+    item = await runtime.async_add_item("Zewa towels", product_code="4008496932504")
+    check("one Open Products Facts knew lands as a thing", item["type"], "product")
+    check("...after one look at the record", databases.asked, ["4008496932504"])
+
+    # Something the databases have never heard of keeps the kind it was given.
+    item = await runtime.async_add_item("Call the plumber", type="task")
+    check("a task is still a task", item["type"], "task")
+
+    # A line that went on the list before anyone knew what it was.
+    plain = await runtime.store.async_add(summary="Velingrad water 6 l")
+    check("...starts with no kind", plain.get("type"), None)
+    counted, outcome = await runtime.async_add_or_increase(
+        "Velingrad water 6 l", type="food", product_code="3800230410023"
+    )
+    check("scanning it counts one more", outcome, "counted")
+    check("...and it learns what it is", counted["type"], "food")
+
+    hass.data["homebasket_api"] = homebasket
+    kept = len(runtime.store.items)
+
     # --- a barcode nobody knows -------------------------------------------
     answer = await scan(hass, "0000000000000")
     check("an unknown barcode is reported as unknown", answer.result["status"], "unknown")
     check("...with nothing to show for it", answer.result["item"], None)
-    check("...and the list is untouched", len(runtime.store.items), 3)
+    check("...and the list is untouched", len(runtime.store.items), kept)
 
     print("\nall scan checks passed")
 

@@ -142,10 +142,13 @@ class ListRuntime:
 
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
-            # HomeBasket knows what the barcode turned out to be; an item that
-            # was not told which takes the product's word for it.
-            if not fields.get("type") and product.get("kind"):
-                fields["type"] = PRODUCT_KINDS.get(product["kind"])
+
+        # HomeBasket binds a product's kind to the database that knew the
+        # barcode: groceries come from Open Food Facts, things from Open
+        # Products Facts, and so on. An item that arrives without a kind asks
+        # HomeBasket for the product's, rather than guessing from the name.
+        if not fields.get("type") and fields.get("product_code"):
+            fields["type"] = await self._async_kind_of(fields["product_code"])
 
         if not fields.get("store"):
             guess = await self.async_guess_store(fields.get("product_code"))
@@ -166,6 +169,19 @@ class ListRuntime:
         await self.async_changed()
         return item, ADDED
 
+    async def _async_kind_of(self, code: str) -> str | None:
+        """Return the list's kind for a barcode, as HomeBasket sees it.
+
+        The product's own kind comes first. A product learned before HomeBasket
+        told a grocery from a thing has none, so the databases are asked once -
+        which settles it for HomeBasket too, and never has to happen again.
+        """
+        product = self.products.get(code)
+        kind = (product or {}).get("kind")
+        if not kind and product is not None:
+            kind = ((await self.products.async_details(code)) or {}).get("kind")
+        return PRODUCT_KINDS.get(kind) if kind else None
+
     async def _async_increase(
         self, item: dict[str, Any], fields: dict[str, Any]
     ) -> dict[str, Any]:
@@ -176,6 +192,9 @@ class ListRuntime:
         have = 1.0 if have in (None, "") else float(have)
 
         changes: dict[str, Any] = {"quantity": have + more}
+        # A line that never had a kind takes the one the scan brought with it.
+        if not item.get("type") and (kind := coerce_type(self.entry, fields.get("type"))):
+            changes["type"] = kind
         # A unit only arrives with the first one; keep whatever the item has.
         if not item.get("unit") and fields.get("unit"):
             changes["unit"] = fields["unit"]
