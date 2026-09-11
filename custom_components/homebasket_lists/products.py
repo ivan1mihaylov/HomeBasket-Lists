@@ -77,6 +77,20 @@ class ProductLink:
             return None
         return await api.async_get_details(code)
 
+    async def async_scan(self, code: str) -> dict[str, Any] | None:
+        """Run a barcode through HomeBasket and return what it is.
+
+        HomeBasket resolves the code the way its own scanner does - the local
+        dictionary first, then the Open Food Facts family, remembering what it
+        finds - but nothing is put on HomeBasket's own list: what to do with
+        the answer is this list's business.
+
+        Returns None when HomeBasket is not installed.
+        """
+        if (api := self.api) is None:
+            return None
+        return await api.async_resolve(code, add_to_list=False, source="homebasket_lists")
+
     async def async_photo(self, code: str | None) -> str | None:
         """Return a photo stored for a product, as a data URL."""
         if not code or (api := self.api) is None:

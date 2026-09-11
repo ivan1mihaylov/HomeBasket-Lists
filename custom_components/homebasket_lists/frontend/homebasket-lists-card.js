@@ -80,6 +80,26 @@ const TRANSLATIONS = {
     takePhoto: 'Take or upload a photo',
     removePhoto: 'Remove the photo',
     photoTooBig: 'That image could not be read.',
+    added: (name) => `${name} added to the list`,
+    scan: 'Scan a barcode',
+    scanUnknown: (code) =>
+      `${code} is not known yet — name it in HomeBasket and scan it again.`,
+    scanNoHomeBasket: 'Scanning needs the HomeBasket integration.',
+    scanFailed: 'Scan failed',
+    cameraTitle: 'Scan a barcode',
+    cameraStarting: 'Starting the camera…',
+    cameraAim: 'Point the camera at the barcode.',
+    cameraDenied:
+      'Camera access was denied. Allow it for Home Assistant and try again.',
+    cameraFailed: (message) => `Could not start the camera: ${message}`,
+    cameraRetry: 'Open the camera',
+    cameraNeedsTap: 'Tap below to start the camera.',
+    cameraInsecure:
+      'The camera needs a secure connection. Open Home Assistant over HTTPS.',
+    cameraUnsupported: 'This browser does not give web pages access to the camera.',
+    cameraNoDetector:
+      'This browser has no built-in barcode detector. Type the code by hand, ' +
+      'or set zxing_url in the card configuration.',
     photoFromProduct: 'From HomeBasket — tap to use your own.',
     openOnOff: 'Open Food Facts page',
     sectionNutrition: 'Nutrition, per 100 g',
@@ -174,6 +194,26 @@ const TRANSLATIONS = {
     takePhoto: 'Снимай или качи снимка',
     removePhoto: 'Премахни снимката',
     photoTooBig: 'Изображението не можа да се прочете.',
+    added: (name) => `${name} е добавен в списъка`,
+    scan: 'Сканирай баркод',
+    scanUnknown: (code) =>
+      `${code} още не е познат — кръсти го в HomeBasket и сканирай пак.`,
+    scanNoHomeBasket: 'За сканиране трябва интеграцията HomeBasket.',
+    scanFailed: 'Сканирането не успя',
+    cameraTitle: 'Сканиране на баркод',
+    cameraStarting: 'Камерата се стартира…',
+    cameraAim: 'Насочи камерата към баркода.',
+    cameraDenied:
+      'Достъпът до камерата е отказан. Разреши го за Home Assistant и опитай пак.',
+    cameraFailed: (message) => `Камерата не тръгна: ${message}`,
+    cameraRetry: 'Отвори камерата',
+    cameraNeedsTap: 'Натисни отдолу, за да пуснеш камерата.',
+    cameraInsecure:
+      'Камерата изисква защитена връзка. Отвори Home Assistant през HTTPS.',
+    cameraUnsupported: 'Този браузър не дава достъп до камерата на уеб страници.',
+    cameraNoDetector:
+      'Този браузър няма вграден четец на баркодове. Въведи кода ръчно или ' +
+      'задай zxing_url в настройките на картата.',
     photoFromProduct: 'Снимка от HomeBasket — натисни, за да сложиш своя.',
     openOnOff: 'Страница в Open Food Facts',
     sectionNutrition: 'Хранителни стойности, на 100 г',
@@ -309,6 +349,8 @@ const STYLES = `
   }
   .add-row input:focus { outline: 2px solid var(--hb-accent); outline-offset: -1px; }
   .add-row .btn.primary { padding: 0 16px; }
+  .add-row .btn { padding: 0 14px; }
+  .add-row .btn svg { width: 22px; height: 22px; fill: currentColor; }
 
   /* What is being typed, matched against the products HomeBasket knows. */
   .suggest { margin: -6px 0 14px; }
@@ -732,6 +774,41 @@ const STYLES = `
     object-fit: contain;
   }
 
+  /* The box is its full size before the stream arrives, so the sheet does
+     not jump when it does. */
+  .camera {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    max-height: 58vh;
+    margin-inline: auto;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .camera video {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .camera.live video { opacity: 1; }
+  /* The frame only means something once there is a picture in it. */
+  .camera .reticle { opacity: 0; transition: opacity 0.15s ease; }
+  .camera.live .reticle { opacity: 1; }
+  .camera:not(.live) { cursor: pointer; }
+  .camera + .hint { margin-top: 10px; }
+  .camera .reticle {
+    position: absolute;
+    inset: 22% 10%;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
   .toast {
     position: fixed;
     left: 50%;
@@ -808,6 +885,8 @@ const ICONS = {
   image:
     'M21 3H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3l4.5-6 3 4L14 13l7 6z',
   task: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z',
+  barcode:
+    'M2 4h2v16H2V4zm3 0h1v16H5V4zm2 0h2v16H7V4zm3 0h1v16h-1V4zm3 0h2v16h-2V4zm3 0h1v16h-1V4zm2 0h3v16h-3V4z',
   camera:
     'M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z',
   close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
@@ -943,11 +1022,167 @@ function toast(root, message, isError = false) {
 
 const DEFAULT_CONFIG = {
   title: null,
+  zxing_url: null,
   language: null,
   list: null,
   show_completed: true,
   group_by_store: true,
 };
+
+/* ------------------------------------------------------------------ *
+ * Camera scanning
+ *
+ * Uses the browser's native BarcodeDetector when available (Chrome, Edge and
+ * the Android Home Assistant Companion app). Browsers without it - Safari and
+ * therefore iOS - can fall back to a ZXing build, but only when the card is
+ * configured with an explicit `zxing_url`, so nothing is pulled from a third
+ * party behind your back.
+ * ------------------------------------------------------------------ */
+
+const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code'];
+
+/** Report why scanning is unavailable, or null when it should work. */
+function scannerUnavailableReason(config, t) {
+  if (!window.isSecureContext) return t.cameraInsecure;
+  if (!navigator.mediaDevices?.getUserMedia) return t.cameraUnsupported;
+  if (!('BarcodeDetector' in window) && !config.zxing_url) return t.cameraNoDetector;
+  return null;
+}
+
+async function createDetector(config) {
+  if ('BarcodeDetector' in window) {
+    const supported = await window.BarcodeDetector.getSupportedFormats();
+    const formats = FORMATS.filter((format) => supported.includes(format));
+    const detector = new window.BarcodeDetector(formats.length ? { formats } : undefined);
+    return async (video) => {
+      const [first] = await detector.detect(video);
+      return first?.rawValue || null;
+    };
+  }
+
+  const zxing = await import(/* webpackIgnore: true */ config.zxing_url);
+  const library = zxing.default || zxing;
+  const reader = new library.BrowserMultiFormatReader();
+  const canvas = document.createElement('canvas');
+  return async (video) => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    if (!canvas.width || !canvas.height) return null;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    try {
+      return reader.decodeFromCanvas(canvas)?.getText() || null;
+    } catch {
+      return null; // No barcode in this frame.
+    }
+  };
+}
+
+/**
+ * Open the camera and resolve with the first code that is read.
+ * Resolves with null when the user closes the dialog.
+ */
+function scanWithCamera(root, config, t) {
+  return new Promise((resolve) => {
+    let stream = null;
+    let timer = null;
+    let settled = false;
+
+    let frame = null;
+    const stop = () => {
+      clearInterval(timer);
+      stream?.getTracks().forEach((track) => track.stop());
+      stream = null;
+      frame?.classList.remove('live');
+    };
+    const finish = (code, close) => {
+      if (settled) return;
+      settled = true;
+      stop();
+      resolve(code);
+      close();
+    };
+
+    openDialog(root, {
+      title: t.cameraTitle,
+      build: (content, close) => {
+        const video = el('video', { playsinline: true, muted: true, autoplay: true });
+        const status = el('p', { class: 'hint', text: t.cameraStarting });
+        // Opened from a home screen shortcut there is no tap on the page
+        // itself, and some browsers only hand over the camera after one, so
+        // a failed start offers the tap rather than being a dead end.
+        const retry = el('button', { class: 'btn block', text: t.cameraRetry, hidden: true });
+        // A video element with nothing in it paints its own ground - white
+        // here, a grey play button there - so it stays invisible until there
+        // is a picture, and the black box shows in its place.
+        frame = el('div', { class: 'camera' }, video, el('div', { class: 'reticle' }));
+        content.append(
+          frame,
+          status,
+          retry,
+        );
+
+        let tapped = false;
+        const start = async () => {
+          stop();
+          retry.hidden = true;
+          status.textContent = t.cameraStarting;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'environment' } },
+              audio: false,
+            });
+            video.srcObject = stream;
+            await video.play();
+            frame.classList.add('live');
+
+            const detect = await createDetector(config);
+            status.textContent = t.cameraAim;
+
+            timer = setInterval(async () => {
+              if (settled || video.readyState < 2) return;
+              let code = null;
+              try {
+                code = await detect(video);
+              } catch (err) {
+                clearInterval(timer);
+                status.textContent = t.cameraFailed(err.message);
+                retry.hidden = false;
+                return;
+              }
+              if (code) {
+                navigator.vibrate?.(80);
+                finish(code, close);
+              }
+            }, 300);
+          } catch (err) {
+            // Opened from a home screen shortcut, nothing on the page has been
+            // tapped yet, and a browser will not hand over the camera before
+            // that. That is not a refusal - it just needs the tap.
+            if (err.name === 'NotAllowedError') {
+              status.textContent = tapped ? t.cameraDenied : t.cameraNeedsTap;
+            } else {
+              status.textContent = t.cameraFailed(err.message);
+            }
+            retry.hidden = false;
+          }
+        };
+
+        const startByHand = () => {
+          tapped = true;
+          start();
+        };
+        retry.addEventListener('click', startByHand);
+        frame.addEventListener('click', () => {
+          if (!frame.classList.contains('live')) startByHand();
+        });
+        start();
+
+        return stop; // Runs when the dialog is dismissed.
+      },
+      buttons: [{ label: t.close, onClick: (close) => finish(null, close) }],
+    });
+  });
+}
 
 const STATUS_DONE = 'completed';
 const STATUS_OPEN = 'needs_action';
@@ -977,6 +1212,7 @@ class HomeBasketListsCard extends HTMLElement {
     this._photos = new Map();
     this._loadingPhotos = new Set();
     this._busy = false;
+    this._cameraOpen = false;
     this._suggestions = [];
     this._suggestIndex = -1;
     this._suggestTimer = null;
@@ -1101,6 +1337,64 @@ class HomeBasketListsCard extends HTMLElement {
       this._input.disabled = false;
       await this._refresh();
       this._input.focus();
+    }
+  }
+
+  /**
+   * Scan a barcode straight onto this list.
+   *
+   * HomeBasket says what the barcode is - from its own dictionary, or the Open
+   * Food Facts family - and the item lands here, as the right kind, without
+   * the HomeBasket card being opened at all.
+   */
+  async _scan() {
+    const t = this._t;
+    if (!this._board?.products_available) {
+      toast(this.shadowRoot, t.scanNoHomeBasket, true);
+      return;
+    }
+    // One camera at a time.
+    if (this._cameraOpen) return;
+
+    const reason = scannerUnavailableReason(this._config, t);
+    if (reason) {
+      toast(this.shadowRoot, reason, true);
+      return;
+    }
+
+    this._cameraOpen = true;
+    let code = null;
+    try {
+      code = await scanWithCamera(this.shadowRoot, this._config, t);
+    } finally {
+      this._cameraOpen = false;
+    }
+    if (!code) return;
+
+    this._busy = true;
+    try {
+      const result = await this._call('homebasket_lists/scan', {
+        entry_id: this._board.entry_id,
+        code,
+        quantity: 1,
+        unit: t.defaultUnit,
+      });
+
+      if (result?.status === 'unknown') {
+        toast(this.shadowRoot, t.scanUnknown(code), true);
+      } else if (result?.outcome === 'counted') {
+        const item = result.item || {};
+        toast(this.shadowRoot, t.countedUp(item.summary || result.name, item.quantity ?? ''));
+      } else if (result?.outcome === 'kept') {
+        toast(this.shadowRoot, t.alreadyThere(result.name));
+      } else {
+        toast(this.shadowRoot, t.added(result?.name || code));
+      }
+    } catch (err) {
+      toast(this.shadowRoot, err.message || t.scanFailed, true);
+    } finally {
+      this._busy = false;
+      await this._refresh();
     }
   }
 
@@ -1968,7 +2262,26 @@ class HomeBasketListsCard extends HTMLElement {
       },
       icon('plus'),
     );
-    this._addRow = el('div', { class: 'add-row' }, this._input, this._addButton);
+    // Scanning belongs to HomeBasket, so the button only exists when it does.
+    // It is built once and hidden until a list that can scan is shown.
+    this._scanButton = el(
+      'button',
+      {
+        class: 'btn',
+        title: this._t.scan,
+        'aria-label': this._t.scan,
+        hidden: true,
+        on: { click: () => this._scan() },
+      },
+      icon('barcode'),
+    );
+    this._addRow = el(
+      'div',
+      { class: 'add-row' },
+      this._input,
+      this._scanButton,
+      this._addButton,
+    );
 
     this._card = el(
       'div',
@@ -2046,6 +2359,8 @@ class HomeBasketListsCard extends HTMLElement {
     this._count.hidden = false;
     this._count.textContent = t.itemsLeft(open.length);
     this._syncButton.hidden = !board.linked_lists?.length;
+    // Nothing to scan with unless HomeBasket is there to say what a barcode is.
+    this._scanButton.hidden = !board.products_available;
 
     this._body.append(this._addRow, this._suggestBox);
 
@@ -2272,6 +2587,12 @@ const EDITOR_FIELDS = [
     ],
   },
   { key: 'group_by_store', label: 'Group by shop', type: 'boolean' },
+  {
+    key: 'zxing_url',
+    label: 'ZXing URL',
+    type: 'text',
+    hint: 'Only for browsers without a built-in barcode detector, such as Safari and iOS.',
+  },
   { key: 'show_completed', label: 'Show completed items', type: 'boolean' },
 ];
 

@@ -110,6 +110,7 @@ def async_register(hass: HomeAssistant) -> None:
         websocket_remove_item,
         websocket_move_item,
         websocket_sync,
+        websocket_scan,
         websocket_photo,
         websocket_item_photo,
         websocket_set_item_photo,
@@ -247,6 +248,62 @@ async def websocket_photo(
         return
     photo = await runtimes[0].products.async_photo(msg["code"])
     connection.send_result(msg["id"], {"photo": photo})
+
+
+@ws.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/scan",
+        vol.Required("entry_id"): str,
+        vol.Required("code"): str,
+        vol.Optional("quantity"): vol.Any(int, float, None),
+        vol.Optional("unit"): vol.Any(str, None),
+    }
+)
+@ws.async_response
+async def websocket_scan(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Put a scanned barcode straight on this list.
+
+    HomeBasket says what the barcode is; this list decides what that means for
+    it - the kind of item, the shop, and whether it is one more of something
+    already there.
+    """
+    runtime = _runtime(hass, msg["entry_id"])
+    if not runtime.products.available:
+        connection.send_error(
+            msg["id"], "not_available", "HomeBasket is not set up on this system"
+        )
+        return
+
+    scanned = await runtime.products.async_scan(msg["code"])
+    name = (scanned or {}).get("name")
+    if not name:
+        # A barcode nobody knows yet. HomeBasket keeps it as pending, so it can
+        # be named there; the list stays as it is.
+        connection.send_result(
+            msg["id"], {"code": msg["code"], "status": "unknown", "item": None}
+        )
+        return
+
+    item, outcome = await runtime.async_add_or_increase(
+        name,
+        product_code=scanned.get("product_code") or msg["code"],
+        type=scanned.get("kind"),
+        quantity=msg.get("quantity"),
+        unit=msg.get("unit"),
+    )
+    connection.send_result(
+        msg["id"],
+        {
+            "code": msg["code"],
+            "status": scanned.get("status"),
+            "name": name,
+            "item": item,
+            "outcome": outcome,
+            "increased": outcome == COUNTED,
+        },
+    )
 
 
 @ws.websocket_command(

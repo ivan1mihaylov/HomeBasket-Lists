@@ -136,6 +136,19 @@ everything else.
 HomeBasket can also put its scans straight onto one of these lists instead of
 onto a to-do entity — the list is chosen in **HomeBasket's** settings.
 
+### Scanning from the list
+
+With HomeBasket installed, a barcode button appears next to the **+** in the add
+row. It opens the phone's camera, and the product lands on this list — the right
+kind of item, the shop guessed, counted if it is already there — without the
+HomeBasket card being opened at all. A barcode nobody knows yet is left for
+HomeBasket to name; the list says so and stays as it is.
+
+The camera needs a browser with a built-in barcode detector (Chrome, Edge and
+the Android Companion app) over HTTPS. Safari and iOS have none, so there the
+card takes a `zxing_url` pointing at a ZXing build you host yourself, the same
+as the HomeBasket card.
+
 ### Something that is already on the list
 
 Scanning the same product twice means two of it: the item's quantity goes up by
@@ -308,6 +321,7 @@ type: custom:homebasket-lists-card
 | `list` | all | One list, picked from those that exist. Empty shows a tab per list. |
 | `language` | Home Assistant's | `bg` or `en`. Leave empty to follow Home Assistant. |
 | `group_by_store` | `true` | Group open items under their shop. |
+| `zxing_url` | `null` | Only for browsers without a built-in barcode detector — see scanning, above. |
 | `show_completed` | `true` | Show what is already ticked off. |
 
 ## Development
@@ -322,6 +336,7 @@ python3 tests/test_arrivals.py  # shop reminders and fixed item kinds
 python3 tests/test_sentences.py # the Assist phrases, parsed with hassil
 python3 tests/test_voice.py     # what the assistant says back
 python3 tests/test_photos.py    # the photos an item can carry
+python3 tests/test_scan.py      # scanning a barcode onto a list
 ```
 
 The sync test stands a fake to-do list up and walks an item through adding,
