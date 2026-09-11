@@ -336,12 +336,33 @@ async def main() -> None:
     free = FakeEntry()
     tasks = FakeEntry(item_types=["task"])
     products = FakeEntry(item_types=["product"])
+    shopping = FakeEntry(item_types=["food", "product"])
     plain = FakeEntry(item_types=[])
 
     check(
-        "a list allowing both kinds leaves an item alone",
+        "a list allowing every kind leaves an item alone",
         apply_type(free, {"summary": "Мляко", "type": "product"}),
         {"summary": "Мляко", "type": "product"},
+    )
+    check(
+        "a shopping list keeps a grocery a grocery",
+        apply_type(shopping, {"summary": "Мляко", "type": "food"})["type"],
+        "food",
+    )
+    check(
+        "...and a thing a thing",
+        apply_type(shopping, {"summary": "Крушка", "type": "product"})["type"],
+        "product",
+    )
+    check(
+        "...while a task becomes the first kind it does take",
+        apply_type(shopping, {"summary": "Полей", "type": "task"})["type"],
+        "food",
+    )
+    check(
+        "...and something with no kind stays that way",
+        apply_type(shopping, {"summary": "Нещо"}),
+        {"summary": "Нещо"},
     )
     check(
         "a task list makes a product a task",
@@ -356,6 +377,11 @@ async def main() -> None:
     check(
         "a product list makes a task a product",
         apply_type(products, {"summary": "Смени крушка", "type": "task"})["type"],
+        "product",
+    )
+    check(
+        "...and a grocery a product",
+        apply_type(products, {"summary": "Мляко", "type": "food"})["type"],
         "product",
     )
     check(

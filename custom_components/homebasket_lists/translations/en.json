@@ -21,7 +21,7 @@
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
           "stores": "Zones that are shops. An item can be assigned one; items without a shop can be bought anywhere.",
-          "item_types": "Pick both to let each item decide. Pick one and everything on this list becomes that, however it arrives - from the card, an action, a voice assistant or a linked list.",
+          "item_types": "Pick them all to let each item decide. Groceries and products are both bought — a grocery has a best-before date, a product a link to where it comes from — and a task has a deadline, a length and its tools.",
           "link_products": "Match item names against HomeBasket so the card can show pictures and details.",
           "notify_arrival": "Notify the phone that reported the arrival when you reach one of the shops above and something on this list is still open.",
           "notify_watch": "The people or device trackers to follow. Leave empty for everyone in the house.",
@@ -60,7 +60,7 @@
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
           "stores": "Zones that are shops. An item can be assigned one; items without a shop can be bought anywhere.",
-          "item_types": "Pick both to let each item decide. Pick one and everything on this list becomes that, however it arrives - from the card, an action, a voice assistant or a linked list.",
+          "item_types": "Pick them all to let each item decide. Groceries and products are both bought — a grocery has a best-before date, a product a link to where it comes from — and a task has a deadline, a length and its tools.",
           "link_products": "Match item names against HomeBasket so the card can show pictures and details.",
           "notify_arrival": "Notify the phone that reported the arrival when you reach one of the shops above and something on this list is still open.",
           "notify_watch": "The people or device trackers to follow. Leave empty for everyone in the house.",
@@ -76,6 +76,7 @@
   "selector": {
     "item_types": {
       "options": {
+        "food": "Groceries",
         "product": "Products",
         "task": "Tasks"
       }

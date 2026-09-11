@@ -226,10 +226,11 @@ async def main() -> None:
     market = FakeRuntime(
         "Пазар",
         [
-            item("мляко", quantity=2, unit="бр.", store="zone.lidl"),
-            item("хляб", store="zone.lidl"),
-            item("тиква", store="zone.kaufland"),
-            item("батерии"),
+            item("мляко", type="food", quantity=2, unit="бр.", store="zone.lidl"),
+            item("хляб", type="food", store="zone.lidl"),
+            item("тиква", type="food", store="zone.kaufland"),
+            # A thing to buy, not a grocery: the same question answers for both.
+            item("батерии", type="product"),
             item("сирене", status="completed", store="zone.lidl"),
             item("смени крушка", type="task", duration=30, duration_unit="minutes"),
         ],

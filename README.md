@@ -53,7 +53,7 @@ another. Each list has:
 | --- | --- |
 | **Keep in sync with** | Built-in to-do lists this one mirrors, in both directions. Any number of them. |
 | **Shops** | Zones that count as shops. An item can be assigned one. |
-| **Kinds of item** | Which kinds this list allows. Both lets each item decide; one makes the whole list that kind. |
+| **Kinds of item** | Which kinds this list allows: groceries, products, tasks. All three lets each item decide; one makes the whole list that kind. |
 | **Something that is already on the list** | Add to its quantity (default), keep the one that is there, or add a second line. |
 | **Recognise HomeBasket products** | Match item names against HomeBasket, so the card can show pictures and categories. |
 | **Remind me at the shop** | Notify the phone that reported the arrival when someone reaches one of the shops. |
@@ -63,13 +63,36 @@ another. Each list has:
 | **Include items with no shop** | Put what can be bought anywhere on every shop's reminder. |
 | **Notify service to fall back on** | Used when the arriving device has no app of its own. |
 
-### One kind of item
+### The three kinds
+
+An item is a **grocery**, a **product** or a **task** — or none of those, a
+plain line with a name and a note. Groceries and products are both bought, so
+both are counted, both take a shop and both answer *what do I need to buy*.
+What each carries afterwards is what tells them apart:
+
+| Kind | What it has |
+| --- | --- |
+| **Grocery** | Quantity and unit, shop, **best before** — shown on the item's row as it gets close |
+| **Product** | Quantity and unit, shop, **link** to where it comes from |
+| **Task** | Deadline, how long it takes, the tools it needs |
+
+A scan picks the kind by itself: HomeBasket knows which of the two databases
+knew the barcode — [Open Food Facts](https://world.openfoodfacts.org/) for
+groceries, [Open Products Facts](https://world.openproductsfacts.org/) for
+everything else — and the item lands as the right kind. So does an item added by
+name that matches a product HomeBasket knows.
 
 A list set to **Tasks** only turns everything that lands on it into a task, and
-one set to **Products** only into a product — whether it came from the card, an
-action, a voice assistant or a linked to-do list. Changing the setting also
-converts what is already on the list, and the card stops showing the kind
-field, since there is nothing left to choose.
+one set to **Groceries** only into a grocery — whether it came from the card, an
+action, a voice assistant or a linked to-do list. Allowing two of the three is
+just as good: a shopping list that takes groceries and products turns a task
+into a grocery and leaves the rest alone. Changing the setting converts what is
+already on the list, and a list fixed to one kind stops showing the kind field,
+since there is nothing left to choose.
+
+Lists made before this existed are brought over on the first start: what was a
+"product" becomes a grocery, and a list that took products takes both. Anything
+that was not food is two taps to put right.
 
 ## How the sync works
 
@@ -238,7 +261,7 @@ startup.
 
 | Action | What it does |
 | --- | --- |
-| `homebasket_lists.add_item` | Add an item with shop, type, quantity and note. |
+| `homebasket_lists.add_item` | Add an item with kind, shop, quantity, note, best before or link. |
 | `homebasket_lists.update_item` | Change an item. Only the fields you pass are touched. |
 | `homebasket_lists.remove_item` | Delete it here and in every linked list. |
 | `homebasket_lists.get_items` | Read items, filtered by shop, type or status. |

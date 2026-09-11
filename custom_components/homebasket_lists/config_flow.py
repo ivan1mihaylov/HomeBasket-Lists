@@ -134,7 +134,7 @@ def _settings(defaults: dict[str, Any]) -> dict:
 class HomeBasketListsConfigFlow(ConfigFlow, domain=DOMAIN):
     """Create a list."""
 
-    VERSION = 1
+    VERSION = 2
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None

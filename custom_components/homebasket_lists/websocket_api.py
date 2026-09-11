@@ -36,6 +36,7 @@ ITEM_VALIDATORS = {
     "duration": vol.Any(int, float, None),
     "duration_unit": vol.Any(vol.In(DURATION_UNITS), None),
     "tools": vol.Any(str, None),
+    "link": vol.Any(str, None),
     "product_code": vol.Any(str, None),
 }
 
@@ -79,6 +80,7 @@ def _describe(runtime: ListRuntime) -> dict[str, Any]:
                 "brand": product.get("brand"),
                 "category": product.get("category"),
                 "image": product.get("image"),
+                "kind": product.get("kind"),
                 "has_photo": product.get("has_photo", False),
             }
         items.append(entry)
@@ -359,6 +361,8 @@ async def websocket_search_products(
                     "brand": product.get("brand"),
                     "category": product.get("category"),
                     "image": product.get("image"),
+                    # A grocery or a thing, as far as HomeBasket knows.
+                    "kind": product.get("kind"),
                     "has_photo": product.get("has_photo", False),
                 }
                 for product in found

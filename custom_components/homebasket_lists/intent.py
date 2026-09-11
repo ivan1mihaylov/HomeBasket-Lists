@@ -22,7 +22,7 @@ import yaml
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, intent
 
-from .const import COUNTED, DOMAIN, KEPT, TYPE_PRODUCT, TYPE_TASK
+from .const import COUNTED, DOMAIN, KEPT, TYPE_FOOD, TYPE_PRODUCT, TYPE_TASK
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION, normalize_summary
 
 _LOGGER = logging.getLogger(__name__)
@@ -280,12 +280,12 @@ def _by_shop(runtime: Any, items: list[dict[str, Any]], language: str) -> str:
     return "; ".join(parts)
 
 
-def _open_items(runtime: Any, kind: str) -> list[dict[str, Any]]:
-    """Return one list's open items of one kind."""
+def _open_items(runtime: Any, kinds: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Return one list's open items of the kinds asked about."""
     return [
         item
         for item in runtime.store.items
-        if item["status"] == STATUS_NEEDS_ACTION and item.get("type") == kind
+        if item["status"] == STATUS_NEEDS_ACTION and item.get("type") in kinds
     ]
 
 
@@ -466,7 +466,7 @@ class _ReadKindIntent(_ListIntent):
     from all of them, and say what is left. Only the wording differs.
     """
 
-    kind: str
+    kinds: tuple[str, ...]
     one: str
     many: str
     nothing: str
@@ -493,7 +493,7 @@ class _ReadKindIntent(_ListIntent):
         found = [
             (runtime, items)
             for runtime in runtimes
-            if (items := _open_items(runtime, self.kind))
+            if (items := _open_items(runtime, self.kinds))
         ]
         if not found:
             # Naming a list makes the answer about that list, so say which.
@@ -530,7 +530,8 @@ class ReadShoppingIntent(_ReadKindIntent):
     """Say what is left to buy, and where."""
 
     intent_type = INTENT_SHOPPING
-    kind = TYPE_PRODUCT
+    # Groceries and things alike: both are bought.
+    kinds = (TYPE_FOOD, TYPE_PRODUCT)
     one = "one_thing"
     many = "many_things"
     nothing = "nothing_to_buy"
@@ -546,7 +547,7 @@ class ReadTasksIntent(_ReadKindIntent):
     """Say what is left to do."""
 
     intent_type = INTENT_TASKS
-    kind = TYPE_TASK
+    kinds = (TYPE_TASK,)
     one = "one_task"
     many = "many_tasks"
     nothing = "nothing_to_do"

@@ -20,12 +20,13 @@ add_item:
     type:
       name: Type
       description: >-
-        product, task, or left out for a plain line that carries only a name
-        and a note.
+        food, product, task, or left out for a plain line that carries only a
+        name and a note.
       required: false
       selector:
         select:
           options:
+            - food
             - product
             - task
     store:
@@ -85,6 +86,13 @@ add_item:
             - minutes
             - hours
             - days
+    link:
+      name: Link
+      description: Where a product comes from. Only meaningful for a product.
+      required: false
+      example: https://example.com/part
+      selector:
+        text:
     tools:
       name: Tools
       description: Free text - what a task needs. Optional.
@@ -139,6 +147,7 @@ update_item:
       selector:
         select:
           options:
+            - food
             - product
             - task
     store:
@@ -251,6 +260,7 @@ get_items:
       selector:
         select:
           options:
+            - food
             - product
             - task
     status:

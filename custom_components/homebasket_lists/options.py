@@ -43,7 +43,7 @@ def forced_type(entry: ConfigEntry) -> str | None:
 
     A list fixed to one kind gives that kind to everything that lands on it, no
     matter where it came from: the card, an action, a voice assistant, or a
-    linked to-do list.
+    scan.
     """
     kinds = allowed_types(entry)
     return kinds[0] if len(kinds) == 1 else None
@@ -51,20 +51,38 @@ def forced_type(entry: ConfigEntry) -> str | None:
 
 def types_are_fixed(entry: ConfigEntry) -> bool:
     """Return whether the list decides an item's kind instead of the item."""
-    return len(allowed_types(entry)) < len(ITEM_TYPES)
+    return len(allowed_types(entry)) <= 1
+
+
+def coerce_type(entry: ConfigEntry, kind: str | None) -> str | None:
+    """Return the kind an item may actually have on this list.
+
+    One allowed kind means every item is that; none means every item is a plain
+    line. With several allowed, a kind the list takes is kept - and so is no
+    kind at all - while anything else becomes the first kind allowed.
+    """
+    allowed = allowed_types(entry)
+    if not allowed:
+        return None
+    if len(allowed) == 1:
+        return allowed[0]
+    if kind is None or kind in allowed:
+        return kind
+    return allowed[0]
 
 
 def apply_type(entry: ConfigEntry, fields: dict[str, Any]) -> dict[str, Any]:
-    """Return the fields with the kind this list requires.
+    """Return the fields with a kind this list allows.
 
-    A list that allows both kinds leaves them alone. One that allows a single
-    kind sets it, and one that allows none clears it, so an item cannot arrive
-    as the wrong thing from a linked list or an action.
+    Only what has to change is touched, so an item whose kind the list takes
+    passes through exactly as it came.
     """
-    if not types_are_fixed(entry):
+    wanted = coerce_type(entry, fields.get("type"))
+    if "type" in fields and fields["type"] == wanted:
         return fields
-    kinds = allowed_types(entry)
-    return {**fields, "type": kinds[0] if kinds else None}
+    if "type" not in fields and wanted is None:
+        return fields
+    return {**fields, "type": wanted}
 
 
 def duplicates(entry: ConfigEntry) -> str:

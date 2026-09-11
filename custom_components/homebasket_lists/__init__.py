@@ -30,6 +30,7 @@ from .const import (
     ATTR_STATUS,
     ATTR_STORE,
     ATTR_SUMMARY,
+    ATTR_LINK,
     ATTR_TOOLS,
     ATTR_TYPE,
     ATTR_UID,
@@ -38,17 +39,25 @@ from .const import (
     DATA_API,
     DOMAIN,
     DURATION_UNITS,
+    CONF_ITEM_TYPES,
     ITEM_TYPES,
     SERVICE_ADD_ITEM,
     SERVICE_GET_ITEMS,
     SERVICE_REMOVE_ITEM,
     SERVICE_SYNC_NOW,
     SERVICE_UPDATE_ITEM,
+    TYPE_FOOD,
+    TYPE_PRODUCT,
 )
 from .coordinator import ListRuntime
 from .frontend import async_register_frontend
 from .images import ImageStore
-from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION, normalize_summary
+from .store import (
+    STATUS_COMPLETED,
+    STATUS_NEEDS_ACTION,
+    ListStore,
+    normalize_summary,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -68,6 +77,7 @@ ITEM_FIELDS = {
     vol.Optional(ATTR_DURATION): vol.Coerce(float),
     vol.Optional(ATTR_DURATION_UNIT): vol.In(DURATION_UNITS),
     vol.Optional(ATTR_TOOLS): cv.string,
+    vol.Optional(ATTR_LINK): cv.string,
     vol.Optional(ATTR_PRODUCT_CODE): cv.string,
 }
 
@@ -82,6 +92,7 @@ SETTABLE = (
     ATTR_DURATION,
     ATTR_DURATION_UNIT,
     ATTR_TOOLS,
+    ATTR_LINK,
     ATTR_PRODUCT_CODE,
 )
 
@@ -138,6 +149,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_create_background_task(
         hass, runtime.async_start(), f"{DOMAIN}_first_sync"
     )
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Bring an older list up to date.
+
+    Version 1 had two kinds of item, where "product" meant anything you buy.
+    It now means the things that are not groceries, so what was on a list
+    becomes food, and a list that took products takes both.
+    """
+    if entry.version >= 2:
+        return True
+
+    kinds = entry.options.get(CONF_ITEM_TYPES, entry.data.get(CONF_ITEM_TYPES))
+    if isinstance(kinds, list) and TYPE_PRODUCT in kinds and TYPE_FOOD not in kinds:
+        kinds = [TYPE_FOOD if kind == TYPE_PRODUCT else kind for kind in kinds]
+        kinds.insert(kinds.index(TYPE_FOOD) + 1, TYPE_PRODUCT)
+        hass.config_entries.async_update_entry(
+            entry, options={**entry.options, CONF_ITEM_TYPES: kinds}
+        )
+
+    store = ListStore(hass, entry.entry_id)
+    await store.async_load()
+    moved = [item for item in store.items if item.get("type") == TYPE_PRODUCT]
+    for item in moved:
+        item["type"] = TYPE_FOOD
+    if moved:
+        await store.async_save()
+        _LOGGER.info(
+            "%s: %d items on %s are groceries now; change any that are not",
+            DOMAIN,
+            len(moved),
+            entry.title,
+        )
+
+    hass.config_entries.async_update_entry(entry, version=2)
     return True
 
 

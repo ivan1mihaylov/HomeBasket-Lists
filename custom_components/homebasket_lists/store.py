@@ -35,6 +35,7 @@ EDITABLE = (
     "duration",
     "duration_unit",
     "tools",
+    "link",
 )
 
 
@@ -147,6 +148,8 @@ class ListStore:
             "duration": fields.get("duration"),
             "duration_unit": fields.get("duration_unit"),
             "tools": fields.get("tools"),
+            # Where a thing comes from, for the ones that are not groceries.
+            "link": fields.get("link"),
             "created": now,
             "updated": now,
         }

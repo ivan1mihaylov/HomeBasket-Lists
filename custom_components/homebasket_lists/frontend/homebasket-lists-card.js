@@ -68,7 +68,10 @@ const TRANSLATIONS = {
     toolsHint: 'Optional. What the job needs — a drill, a ladder, a spare filter.',
     units: { minutes: 'minutes', hours: 'hours', days: 'days' },
     shortUnits: { minutes: 'min', hours: 'h', days: 'd' },
-    types: { '': 'None', product: 'Product', task: 'Task' },
+    types: { '': 'None', food: 'Food', product: 'Product', task: 'Task' },
+    bestBefore: 'Best before',
+    link: 'Link',
+    linkHint: 'Where to get it — a web shop, a listing, a part number page.',
     details: 'Product details',
     loading: 'Loading…',
     noDetails: 'HomeBasket has nothing more on this product.',
@@ -158,7 +161,10 @@ const TRANSLATIONS = {
     toolsHint: 'По избор. Какво трябва за работата — бормашина, стълба, филтър.',
     units: { minutes: 'минути', hours: 'часа', days: 'дни' },
     shortUnits: { minutes: 'мин', hours: 'ч', days: 'дни' },
-    types: { '': 'Без', product: 'Продукт', task: 'Задача' },
+    types: { '': 'Без', food: 'Хранителна стока', product: 'Продукт', task: 'Задача' },
+    bestBefore: 'Годен до',
+    link: 'Линк',
+    linkHint: 'Откъде се взема — магазин, обява, страница на частта.',
     details: 'Информация за продукта',
     loading: 'Зареждане…',
     noDetails: 'HomeBasket няма повече информация за този продукт.',
@@ -459,6 +465,7 @@ const STYLES = `
   .dialog .content { padding: 8px 18px 16px; overflow: auto; }
   .dialog label { display: block; margin-bottom: 6px; font-size: 0.8125rem; color: var(--hb-muted); }
   .dialog input[type='text'],
+  .dialog input[type='url'],
   .dialog select,
   .dialog textarea {
     width: 100%;
@@ -926,13 +933,17 @@ const STATUS_OPEN = 'needs_action';
 // Three kinds, and each shows only what it needs: a product is bought
 // somewhere in some amount, a task takes time and tools, and something with no
 // type at all is just a line with a note.
+const TYPE_FOOD = 'food';
 const TYPE_PRODUCT = 'product';
 const TYPE_TASK = 'task';
-const TYPES = ['', TYPE_PRODUCT, TYPE_TASK];
+const TYPES = ['', TYPE_FOOD, TYPE_PRODUCT, TYPE_TASK];
 const DURATION_UNITS = ['minutes', 'hours', 'days'];
 
 const isTask = (type) => type === TYPE_TASK;
-const isProduct = (type) => type === TYPE_PRODUCT;
+const isFood = (type) => type === TYPE_FOOD;
+// Groceries and things are both bought: counted, assigned a shop, crossed off
+// in the same trip. Only what each carries afterwards differs.
+const isBuyable = (type) => type === TYPE_FOOD || type === TYPE_PRODUCT;
 
 class HomeBasketListsCard extends HTMLElement {
   constructor() {
@@ -1043,12 +1054,12 @@ class HomeBasketListsCard extends HTMLElement {
       // A line added here is something to buy, one of, unless the list is
       // fixed to another kind or the caller says otherwise.
       const fixed = this._fixedType();
-      const kind = fixed === null ? TYPE_PRODUCT : fixed;
+      const kind = fixed === null ? TYPE_FOOD : fixed;
       const result = await this._call('homebasket_lists/item/add', {
         entry_id: this._board.entry_id,
         summary: text,
         item_type: kind || null,
-        ...(isProduct(kind) ? { quantity: 1, unit: this._t.defaultUnit } : {}),
+        ...(isBuyable(kind) ? { quantity: 1, unit: this._t.defaultUnit } : {}),
         ...extra,
       });
       // Adding something the list already has does whatever the list says -
@@ -1171,7 +1182,11 @@ class HomeBasketListsCard extends HTMLElement {
 
   _pickSuggestion(product) {
     if (!product) return;
-    this._addItem(product.name, { product_code: product.code });
+    this._addItem(product.name, {
+      product_code: product.code,
+      // HomeBasket knows whether it is a grocery or a thing.
+      ...(product.kind ? { item_type: product.kind } : {}),
+    });
   }
 
   _renderSuggestions() {
@@ -1533,8 +1548,9 @@ class HomeBasketListsCard extends HTMLElement {
             fields.duration = null;
             fields.durationUnit = null;
             fields.tools = null;
+            fields.link = null;
 
-            if (isProduct(type)) {
+            if (isBuyable(type)) {
               perType.appendChild(el('label', { text: t.quantity }));
               fields.quantity = el('input', {
                 type: 'number',
@@ -1586,6 +1602,27 @@ class HomeBasketListsCard extends HTMLElement {
               }
               fields.store.value = item.store || '';
               perType.appendChild(fields.store);
+
+              // What a grocery has that a thing does not, and the other way
+              // round: one goes off, the other comes from somewhere.
+              if (isFood(type)) {
+                perType.appendChild(el('label', { text: t.bestBefore }));
+                fields.due = el('input', {
+                  type: 'date',
+                  value: (item.due || '').slice(0, 10),
+                });
+                perType.appendChild(fields.due);
+              } else {
+                perType.appendChild(el('label', { text: t.link }));
+                fields.link = el('input', {
+                  type: 'url',
+                  inputmode: 'url',
+                  placeholder: 'https://',
+                  value: item.link || '',
+                });
+                perType.appendChild(fields.link);
+                perType.appendChild(el('p', { class: 'hint', text: t.linkHint }));
+              }
               return;
             }
 
@@ -1660,6 +1697,7 @@ class HomeBasketListsCard extends HTMLElement {
                   unit: fields.unit ? fields.unit.value.trim() || null : null,
                   store: fields.store ? fields.store.value || null : null,
                   due: fields.due ? fields.due.value || null : null,
+                  link: fields.link ? fields.link.value.trim() || null : null,
                   duration: fields.duration
                     ? Number(fields.duration.value) || null
                     : null,
@@ -1970,7 +2008,7 @@ class HomeBasketListsCard extends HTMLElement {
     if (this._config.group_by_store && board.stores?.length) {
       const groups = new Map();
       for (const item of open) {
-        const key = isProduct(item.type) ? item.store || '' : '';
+        const key = isBuyable(item.type) ? item.store || '' : '';
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(item);
       }
@@ -2081,6 +2119,12 @@ class HomeBasketListsCard extends HTMLElement {
     if (item.quantity) meta.appendChild(this._renderAmount(item, t));
     if (item.store && !hideStore && !isTask(item.type)) {
       meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
+    }
+    // A grocery goes off; the date is worth seeing without opening the item.
+    if (isFood(item.type) && item.due) {
+      meta.appendChild(
+        el('span', { class: 'chip qty', text: `${t.bestBefore}: ${item.due.slice(0, 10)}` }),
+      );
     }
     if (isTask(item.type)) {
       if (item.due) {

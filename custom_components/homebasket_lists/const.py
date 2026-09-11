@@ -29,11 +29,15 @@ CONF_NOTIFY_UNASSIGNED: Final = "notify_unassigned"
 CONF_NOTIFY_COOLDOWN: Final = "notify_cooldown"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
 
-# An item is a product, a task, or neither. "Neither" is stored as no type at
-# all and carries only a name and a note.
+# An item is a grocery, a thing to buy, a task, or none of those. "None" is
+# stored as no type at all and carries only a name and a note.
+#
+# Food and products are both bought, and the fields say what each one is for: a
+# grocery has a best-before date, a product a link to where it comes from.
+TYPE_FOOD: Final = "food"
 TYPE_PRODUCT: Final = "product"
 TYPE_TASK: Final = "task"
-ITEM_TYPES: Final = [TYPE_PRODUCT, TYPE_TASK]
+ITEM_TYPES: Final = [TYPE_FOOD, TYPE_PRODUCT, TYPE_TASK]
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 DEFAULT_LINK_PRODUCTS: Final = True
 
@@ -77,6 +81,7 @@ ATTR_DUE: Final = "due"
 ATTR_DURATION: Final = "duration"
 ATTR_DURATION_UNIT: Final = "duration_unit"
 ATTR_TOOLS: Final = "tools"
+ATTR_LINK: Final = "link"
 
 # How long a task takes.
 DURATION_UNITS: Final = ["minutes", "hours", "days"]

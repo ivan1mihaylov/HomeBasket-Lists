@@ -21,7 +21,13 @@ from .const import (
     SIGNAL_UPDATED,
     TYPE_TASK,
 )
-from .options import allowed_types, apply_type, duplicates, forced_type
+from .options import (
+    allowed_types,
+    apply_type,
+    coerce_type,
+    duplicates,
+    forced_type,
+)
 from .products import ProductLink
 from .store import STATUS_NEEDS_ACTION as STATUS_OPEN, ListStore
 from .sync import ListSync
@@ -129,6 +135,10 @@ class ListRuntime:
 
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
+            # HomeBasket knows whether it is a grocery or a thing; an item that
+            # was not told which takes the product's word for it.
+            if not fields.get("type") and product.get("kind"):
+                fields["type"] = product["kind"]
 
         if not fields.get("store"):
             guess = await self.async_guess_store(fields.get("product_code"))
@@ -187,20 +197,17 @@ class ListRuntime:
         return item
 
     async def async_enforce_types(self) -> int:
-        """Give every item the kind the list requires. Returns how many changed.
+        """Give every item a kind the list allows. Returns how many changed.
 
-        Run at startup, which is also after the settings change, so switching a
-        list to tasks only turns what is already on it into tasks rather than
+        Run at startup, which is also after the settings change, so narrowing a
+        list to tasks turns what is already on it into tasks rather than
         leaving a mixture behind.
         """
-        wanted = apply_type(self.entry, {})
-        if "type" not in wanted:
-            return 0
-
         changed = 0
         for item in list(self.store.items):
-            if item.get("type") != wanted["type"]:
-                await self.store.async_update(item["uid"], type=wanted["type"])
+            wanted = coerce_type(self.entry, item.get("type"))
+            if item.get("type") != wanted:
+                await self.store.async_update(item["uid"], type=wanted)
                 changed += 1
         if changed:
             self.async_notify()
