@@ -1,3 +1,5 @@
+<img src="docs/icon.png" alt="HomeBasket Lists" width="96" align="right">
+
 # HomeBasket Lists
 
 Shopping lists for Home Assistant that stay in step with the built-in to-do
