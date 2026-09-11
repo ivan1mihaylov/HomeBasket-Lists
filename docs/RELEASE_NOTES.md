@@ -1,11 +1,15 @@
-Every item has the photo field now.
+**Scan straight onto a list.** With HomeBasket installed there is a barcode
+button beside the **+** in the add row. It opens the camera, HomeBasket says
+what the barcode is, and the product lands on this list as the right kind of
+item — the shop guessed, the count raised if it is already there — without the
+HomeBasket card being opened at all. The product is remembered by HomeBasket
+exactly as if it had been scanned there, and the scan shows in the HomeBasket
+card's recent scans too (that part needs HomeBasket 0.9.0 and its card 0.9.0).
 
-It was only offered on items HomeBasket knew nothing about, which is fewer and
-fewer of them as names start matching products — and from the outside it looked
-like the field had gone missing. An item linked to a product now starts with
-that product's picture in the square, marked as coming from HomeBasket, and
-tapping it takes your own, which then wins on the item's row. The × removes only
-your own; the product's picture belongs to the product, where every list can use
-it.
+A barcode nobody knows yet is left for HomeBasket to name; the list says so and
+stays as it is. Without HomeBasket the button is not there at all. Safari and
+iOS have no barcode detector of their own, so the card takes a `zxing_url` the
+same way the HomeBasket card does.
 
-Also fixes a stray "null" printed under the picture.
+**A picture on the list opens whole.** Tapping a thumbnail shows it over the
+screen; tapping it again — or Escape — puts it away.
