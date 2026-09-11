@@ -34,7 +34,8 @@ CONF_NOTIFY_SERVICE: Final = "notify_service"
 # stored as no type at all and carries only a name and a note.
 #
 # Food and products are both bought, and the fields say what each one is for: a
-# grocery has a best-before date, a product a link to where it comes from.
+# product can say where it comes from. Neither carries a date: this is a list of
+# what to buy, not a record of what is in the cupboard.
 TYPE_FOOD: Final = "food"
 TYPE_PRODUCT: Final = "product"
 TYPE_TASK: Final = "task"
@@ -60,6 +61,7 @@ DEPARTMENT_BAKERY: Final = "bakery"
 DEPARTMENT_PRODUCE: Final = "produce"
 DEPARTMENT_BUTCHER: Final = "butcher"
 DEPARTMENT_COSMETICS: Final = "cosmetics"
+DEPARTMENT_MEDICINES: Final = "medicines"
 DEPARTMENT_PETS: Final = "pets"
 DEPARTMENT_BUILDING: Final = "building"
 DEPARTMENTS: Final = [
@@ -68,6 +70,7 @@ DEPARTMENTS: Final = [
     DEPARTMENT_PRODUCE,
     DEPARTMENT_BUTCHER,
     DEPARTMENT_COSMETICS,
+    DEPARTMENT_MEDICINES,
     DEPARTMENT_PETS,
     DEPARTMENT_BUILDING,
 ]

@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.13.3';
+const VERSION = '0.14.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -69,7 +69,6 @@ const TRANSLATIONS = {
     units: { minutes: 'minutes', hours: 'hours', days: 'days' },
     shortUnits: { minutes: 'min', hours: 'h', days: 'd' },
     types: { '': 'None', food: 'Food', product: 'Product', task: 'Task' },
-    bestBefore: 'Best before',
     link: 'Link',
     linkHint: 'Where to get it — a web shop, a listing, a part number page.',
     details: 'Product details',
@@ -108,6 +107,7 @@ const TRANSLATIONS = {
       produce: 'Greengrocer',
       butcher: 'Butcher',
       cosmetics: 'Cosmetics',
+      medicines: 'Medicines',
       pets: 'Pet shop',
       building: 'Building supplies',
     },
@@ -196,7 +196,6 @@ const TRANSLATIONS = {
     units: { minutes: 'минути', hours: 'часа', days: 'дни' },
     shortUnits: { minutes: 'мин', hours: 'ч', days: 'дни' },
     types: { '': 'Без', food: 'Хранителна стока', product: 'Продукт', task: 'Задача' },
-    bestBefore: 'Годен до',
     link: 'Линк',
     linkHint: 'Откъде се взема — магазин, обява, страница на частта.',
     details: 'Информация за продукта',
@@ -235,6 +234,7 @@ const TRANSLATIONS = {
       produce: 'Плод и зеленчук',
       butcher: 'Месарница',
       cosmetics: 'Парфюмерия и козметика',
+      medicines: 'Лекарства',
       pets: 'Домашни любимци',
       building: 'Строителни материали',
     },
@@ -1081,7 +1081,9 @@ const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'it
 
 // The kinds of shop something can be bought in. The integration says which it
 // knows; this is only what to show when it is too old to say.
-const DEPARTMENTS = ['groceries', 'bakery', 'produce', 'butcher', 'cosmetics', 'pets', 'building'];
+const DEPARTMENTS = [
+  'groceries', 'bakery', 'produce', 'butcher', 'cosmetics', 'medicines', 'pets', 'building',
+];
 
 // Where this integration publishes the reader it ships. HomeBasket serves the
 // same file, and either will do.
@@ -2089,16 +2091,10 @@ class HomeBasketListsCard extends HTMLElement {
               });
               perType.appendChild(shopHint);
 
-              // What a grocery has that a thing does not, and the other way
-              // round: one goes off, the other comes from somewhere.
-              if (isFood(type)) {
-                perType.appendChild(el('label', { text: t.bestBefore }));
-                fields.due = el('input', {
-                  type: 'date',
-                  value: (item.due || '').slice(0, 10),
-                });
-                perType.appendChild(fields.due);
-              } else {
+              // A thing can say where it comes from. A grocery has nothing of
+              // the sort: this is a list of what to buy, not a record of what
+              // is in the cupboard, so there is no date on it.
+              if (!isFood(type)) {
                 perType.appendChild(el('label', { text: t.link }));
                 fields.link = el('input', {
                   type: 'url',
@@ -2691,12 +2687,6 @@ class HomeBasketListsCard extends HTMLElement {
     if (item.quantity) meta.appendChild(this._renderAmount(item, t));
     if (item.store && !hideStore && !isTask(item.type)) {
       meta.appendChild(el('span', { class: 'chip store', text: this._storeName(item.store) }));
-    }
-    // A grocery goes off; the date is worth seeing without opening the item.
-    if (isFood(item.type) && item.due) {
-      meta.appendChild(
-        el('span', { class: 'chip qty', text: `${t.bestBefore}: ${item.due.slice(0, 10)}` }),
-      );
     }
     if (isTask(item.type)) {
       if (item.due) {

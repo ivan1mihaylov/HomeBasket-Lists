@@ -83,7 +83,7 @@ What each carries afterwards is what tells them apart:
 
 | Kind | What it has |
 | --- | --- |
-| **Grocery** | Quantity and unit, shop, **best before** — shown on the item's row as it gets close |
+| **Grocery** | Quantity and unit, shop, shop category |
 | **Product** | Quantity and unit, shop, **link** to where it comes from |
 | **Task** | Deadline, how long it takes, the tools it needs |
 
@@ -187,7 +187,7 @@ Tasks stay here: they are the list's own business, not products.
 ### Which shop each kind of thing is worth a reminder in
 
 Items belong to a category of shop — groceries, bakery, greengrocer, butcher,
-cosmetics, pet shop, building supplies. A product brings its own from
+cosmetics, medicines, pet shop, building supplies. A product brings its own from
 HomeBasket, which takes it from the database that knew the barcode; anything
 typed by hand can be given one in its sheet.
 
@@ -332,7 +332,7 @@ startup.
 
 | Action | What it does |
 | --- | --- |
-| `homebasket_lists.add_item` | Add an item with kind, shop, quantity, note, best before or link. |
+| `homebasket_lists.add_item` | Add an item with kind, shop, quantity, note or link. |
 | `homebasket_lists.update_item` | Change an item. Only the fields you pass are touched. |
 | `homebasket_lists.remove_item` | Delete it here and in every linked list. |
 | `homebasket_lists.get_items` | Read items, filtered by shop, type or status. |
