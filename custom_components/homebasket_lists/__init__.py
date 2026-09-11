@@ -21,6 +21,7 @@ from . import websocket_api
 from .intent import async_setup_intents, async_write_sentences
 from .api import HomeBasketListsAPI
 from .const import (
+    ATTR_DEPARTMENT,
     ATTR_DUE,
     ATTR_DURATION,
     ATTR_DURATION_UNIT,
@@ -40,6 +41,7 @@ from .const import (
     DOMAIN,
     DURATION_UNITS,
     CONF_ITEM_TYPES,
+    DEPARTMENTS,
     ITEM_TYPES,
     SERVICE_ADD_ITEM,
     SERVICE_GET_ITEMS,
@@ -78,6 +80,7 @@ ITEM_FIELDS = {
     vol.Optional(ATTR_DURATION_UNIT): vol.In(DURATION_UNITS),
     vol.Optional(ATTR_TOOLS): cv.string,
     vol.Optional(ATTR_LINK): cv.string,
+    vol.Optional(ATTR_DEPARTMENT): vol.Any(vol.In(DEPARTMENTS), None),
     vol.Optional(ATTR_PRODUCT_CODE): cv.string,
 }
 
@@ -93,6 +96,7 @@ SETTABLE = (
     ATTR_DURATION_UNIT,
     ATTR_TOOLS,
     ATTR_LINK,
+    ATTR_DEPARTMENT,
     ATTR_PRODUCT_CODE,
 )
 

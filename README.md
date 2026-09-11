@@ -72,6 +72,7 @@ another. Each list has:
 | **Stay in the shop for** | Minutes before the reminder is sent, so driving past says nothing. |
 | **Then stay quiet for** | Minutes before the same shop may remind the same person again. |
 | **Include items with no shop** | Put what can be bought anywhere on every shop's reminder. |
+| **One zone picker per shop category** | Groceries, bakery, greengrocer, butcher, cosmetics, pharmacy, pet shop, building supplies — each can name the zones it is worth a reminder in. Empty means everywhere. |
 | **Notify service to fall back on** | Used when the arriving device has no app of its own. |
 
 ### The three kinds
@@ -84,8 +85,17 @@ What each carries afterwards is what tells them apart:
 | Kind | What it has |
 | --- | --- |
 | **Grocery** | Quantity and unit, shop, shop category |
-| **Product** | Quantity and unit, shop, **link** to where it comes from |
+| **Product** | The same, plus a **link** to where it comes from |
 | **Task** | Deadline, how long it takes, the tools it needs |
+
+Neither of the two carries a date. This is a list of what to buy, not a record
+of what is in the cupboard.
+
+Something to buy lands as **one of it**, counted in pieces in the language Home
+Assistant is in, whenever nobody said otherwise — a scan, a line typed here, one
+adopted from a to-do list, an action, a voice assistant. Only what is missing is
+filled in: "2 kg" stays two kilograms, and a unit on its own means one of that.
+A task has nothing to count.
 
 A scan picks the kind by itself: HomeBasket knows which database knew the
 barcode — Open Food Facts, Open Beauty Facts, Open Pet Food Facts or Open
@@ -235,9 +245,14 @@ way files in `www/` are. Deleting an item deletes its photo, and so does
 deleting the list.
 
 An item linked to a HomeBasket product starts with that product's picture in the
-square, marked as coming from HomeBasket. Tapping it takes your own, which then
-wins on the row; the × only ever removes your own — the product's picture
-belongs to the product, where every list can use it.
+square, marked as coming from HomeBasket — whether that is one a database
+supplied or one somebody took. Tapping it takes your own, which then wins on the
+row; the × only ever removes your own — the product's picture belongs to the
+product, where every list can use it.
+
+A photo put on something to buy goes to HomeBasket with the rest of what you
+configure, so the same picture is there the next time that thing is added,
+anywhere.
 
 ## Shops and reminders
 
@@ -312,8 +327,10 @@ the products and *what do I have to do* the tasks — an item with no kind is
 neither, and is only read out by *what is on &lt;list&gt;*.
 
 Quantities are said rather than read out: an item written *eggs, 5 pcs* is
-spoken as *eggs - 5 pieces*, and kg, g, l and ml are said in full too. A unit
-the answer's language does not know is said exactly as it was typed.
+spoken as *eggs - 5 pieces*, and kg, g, l and ml are said in full too. Bulgarian
+puts the count first, the way it is actually said — *5 броя яйца* — while
+English leads with the name. A unit the answer's language does not know is said
+exactly as it was typed.
 
 Each line has several wordings: *what do I need to buy*, *what should I buy*,
 *what is left to buy*, *what is on my shopping list* and *what do I need from
@@ -332,7 +349,7 @@ startup.
 
 | Action | What it does |
 | --- | --- |
-| `homebasket_lists.add_item` | Add an item with kind, shop, quantity, note or link. |
+| `homebasket_lists.add_item` | Add an item with kind, shop, shop category, quantity, note or link. |
 | `homebasket_lists.update_item` | Change an item. Only the fields you pass are touched. |
 | `homebasket_lists.remove_item` | Delete it here and in every linked list. |
 | `homebasket_lists.get_items` | Read items, filtered by shop, type or status. |
@@ -351,7 +368,7 @@ for board in api.lists:
 to_buy = api.items_for_store("zone.kaufland")
 
 # Put something on a list, or add one more of it if it is already there.
-result = await api.async_add_item("Milk", quantity=1, unit="pcs")
+result = await api.async_add_item("Milk", quantity=1, unit="pcs", department="groceries")
 if result and result["increased"]:
     print(result["list"], "now has", result["item"]["quantity"])
 ```
@@ -385,11 +402,11 @@ Assistant:
 ```bash
 python3 tests/test_sync.py      # the two-way sync
 python3 tests/test_stores.py    # guessing a shop from Open Food Facts
-python3 tests/test_arrivals.py  # shop reminders and fixed item kinds
+python3 tests/test_arrivals.py  # shop reminders, shop categories, fixed kinds
 python3 tests/test_sentences.py # the Assist phrases, parsed with hassil
 python3 tests/test_voice.py     # what the assistant says back
 python3 tests/test_photos.py    # the photos an item can carry
-python3 tests/test_scan.py      # scanning a barcode onto a list
+python3 tests/test_scan.py      # scanning, and what HomeBasket is told to keep
 ```
 
 The sync test stands a fake to-do list up and walks an item through adding,

@@ -134,6 +134,7 @@ ATTR_DURATION: Final = "duration"
 ATTR_DURATION_UNIT: Final = "duration_unit"
 ATTR_TOOLS: Final = "tools"
 ATTR_LINK: Final = "link"
+ATTR_DEPARTMENT: Final = "department"
 
 # How long a task takes.
 DURATION_UNITS: Final = ["minutes", "hours", "days"]

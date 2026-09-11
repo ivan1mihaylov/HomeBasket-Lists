@@ -100,6 +100,24 @@ add_item:
       example: стълба, отвертка
       selector:
         text:
+    department:
+      name: Shop category
+      description: >-
+        Which kind of shop it is bought in: groceries, bakery, produce,
+        butcher, cosmetics, medicines (the pharmacy), pets or building.
+      required: false
+      example: groceries
+      selector:
+        select:
+          options:
+            - groceries
+            - bakery
+            - produce
+            - butcher
+            - cosmetics
+            - medicines
+            - pets
+            - building
     product_code:
       name: Barcode
       description: >-
@@ -207,6 +225,24 @@ update_item:
       example: стълба, отвертка
       selector:
         text:
+    department:
+      name: Shop category
+      description: >-
+        Which kind of shop it is bought in: groceries, bakery, produce,
+        butcher, cosmetics, medicines (the pharmacy), pets or building.
+      required: false
+      example: groceries
+      selector:
+        select:
+          options:
+            - groceries
+            - bakery
+            - produce
+            - butcher
+            - cosmetics
+            - medicines
+            - pets
+            - building
     product_code:
       name: Barcode
       required: false
