@@ -238,6 +238,30 @@ async def async_setup_intents(hass: HomeAssistant) -> None:
         intent.async_register(hass, handler)
 
 
+def sentence_document(
+    language: str, phrases: dict[str, list[str]], names: list[str]
+) -> dict[str, Any]:
+    """Return one custom sentences file, in the shape Assist expects.
+
+    Every intent is a mapping with a `data` list - a bare list of blocks under
+    the intent name makes the conversation agent fail to load the language at
+    all, taking every other custom sentence down with it. Every {slot} must
+    also be a list: what was said is free text, so `item` is a wildcard, while
+    `hb_list` is the names of the lists that exist.
+    """
+    return {
+        "language": language,
+        "intents": {
+            name: {"data": [{"sentences": list(sentences)}]}
+            for name, sentences in phrases.items()
+        },
+        "lists": {
+            "item": {"wildcard": True},
+            "hb_list": {"values": list(names)},
+        },
+    }
+
+
 async def async_write_sentences(hass: HomeAssistant) -> None:
     """Write the Assist phrases for the lists that exist right now."""
     names = sorted(runtime.name for runtime in _runtimes(hass))
@@ -245,14 +269,7 @@ async def async_write_sentences(hass: HomeAssistant) -> None:
         return
 
     for language, phrases in SENTENCES.items():
-        document = {
-            "language": language,
-            "intents": {
-                name: [{"sentences": list(sentences)}]
-                for name, sentences in phrases.items()
-            },
-            "lists": {"hb_list": {"values": names}},
-        }
+        document = sentence_document(language, phrases, names)
         text = (
             "# Written by the HomeBasket Lists integration.\n"
             "# It is rewritten when a list is added or renamed.\n"

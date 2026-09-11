@@ -217,6 +217,7 @@ Assistant:
 python3 tests/test_sync.py      # the two-way sync
 python3 tests/test_stores.py    # guessing a shop from Open Food Facts
 python3 tests/test_arrivals.py  # shop reminders and fixed item kinds
+python3 tests/test_sentences.py # the Assist phrases, parsed with hassil
 ```
 
 The first stands a fake to-do list up and walks an item through adding, ticking
