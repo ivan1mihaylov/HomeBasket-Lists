@@ -11,12 +11,24 @@ no product.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import DEPARTMENTS, HOMEBASKET_API, PRODUCT_KINDS
+from .const import DEPARTMENTS, HOMEBASKET_API, LOCAL_PREFIX, PRODUCT_KINDS
 from .store import normalize_summary
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def is_local(code: str | None) -> bool:
+    """Return whether a product code is HomeBasket's own key, not a barcode.
+
+    A product a list configured has no barcode until someone gives it one in
+    the HomeBasket card.
+    """
+    return str(code or "").startswith(LOCAL_PREFIX)
 
 
 class ProductLink:
@@ -107,6 +119,59 @@ class ProductLink:
             return None
         found = product.get("department")
         return found if found in DEPARTMENTS else None
+
+    async def async_remember(
+        self,
+        summary: str,
+        *,
+        department: str | None = None,
+        photo: str | None = None,
+    ) -> str | None:
+        """Hand something configured here over to HomeBasket, and return its code.
+
+        HomeBasket owns the products; a list that configures one - a name, a
+        picture, the kind of shop it comes from - should not be the only place
+        that knows. What goes over has no barcode, and the HomeBasket card can
+        give it one later, after which scanning finds the same product.
+
+        Returns None when HomeBasket is not installed or is too old for this.
+        """
+        api = self.api
+        if api is None or not hasattr(api, "async_remember_product"):
+            return None
+
+        try:
+            product = await api.async_remember_product(
+                summary, department=department, photo=photo
+            )
+        except Exception:  # noqa: BLE001 - a list works without HomeBasket
+            _LOGGER.exception("HomeBasket would not keep '%s'", summary)
+            return None
+        return (product or {}).get("code")
+
+    async def async_update_remembered(
+        self,
+        code: str | None,
+        *,
+        department: str | None = None,
+        photo: str | None = None,
+    ) -> None:
+        """Pass a change to a product this side configured back to HomeBasket.
+
+        Only for products HomeBasket has no barcode for, which are the ones a
+        list made: what Open Food Facts named is not a list's to rewrite.
+        """
+        api = self.api
+        if not code or api is None or not is_local(code):
+            return
+
+        try:
+            if department:
+                await api.async_set_department(code, department)
+            if photo is not None and hasattr(api, "async_set_photo"):
+                await api.async_set_photo(code, photo)
+        except Exception:  # noqa: BLE001 - the list keeps its own copy anyway
+            _LOGGER.exception("HomeBasket would not take the change to %s", code)
 
     async def async_scan(self, code: str) -> dict[str, Any] | None:
         """Run a barcode through HomeBasket and return what it is.

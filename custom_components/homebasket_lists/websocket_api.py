@@ -358,6 +358,10 @@ async def websocket_set_item_photo(
         connection.send_error(msg["id"], "invalid_image", str(err))
         return
 
+    # A picture is part of configuring something to buy, so it goes to
+    # HomeBasket with the rest of it.
+    await runtime.async_remember_item(msg["uid"])
+
     runtime.async_notify()
     connection.send_result(msg["id"], {"saved": True})
 

@@ -77,6 +77,11 @@ DEPARTMENTS: Final = [
 # everything did before there were departments at all.
 CONF_DEPARTMENT_ZONES: Final = "department_zones"
 
+# How HomeBasket keys a product it has no barcode for - one a list configured
+# and handed over. Such a product is this side's to keep up to date; one a
+# database named is not.
+LOCAL_PREFIX: Final = "local:"
+
 # Something to buy is one of it unless someone says otherwise, counted in
 # pieces in the language the house speaks.
 DEFAULT_QUANTITY: Final = 1

@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.12.1';
+const VERSION = '0.13.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -561,6 +561,15 @@ const STYLES = `
     background-position: right 10px center;
     background-size: 22px 22px;
     padding-inline-end: 38px;
+    /* The list a select drops down is drawn by the browser, not by us, and it
+       follows the colour scheme rather than the theme. Saying which scheme
+       this card is in keeps that list dark on a dark dashboard. */
+    color-scheme: var(--hb-scheme, light);
+  }
+  .dialog select option,
+  .editor select option {
+    background: var(--hb-surface);
+    color: var(--hb-fg);
   }
   .dialog textarea { min-height: 74px; resize: vertical; }
 
@@ -677,6 +686,8 @@ const STYLES = `
     margin-bottom: 14px;
   }
   .dialog input[type='date'] {
+    /* The calendar it opens is the browser's too. */
+    color-scheme: var(--hb-scheme, light);
     width: 100%;
     box-sizing: border-box;
     font: inherit;
@@ -2396,8 +2407,26 @@ class HomeBasketListsCard extends HTMLElement {
     this._render();
   }
 
+  /**
+   * Tell the browser which colour scheme the dashboard is in.
+   *
+   * The list a `<select>` drops down, and the panel a date field opens, are
+   * drawn by the browser rather than by this card, and they follow the colour
+   * scheme rather than the Home Assistant theme - which is how a dark
+   * dashboard ends up with a white menu on it. The theme does not say which
+   * it is, so the text colour answers for it: light text means a dark
+   * dashboard.
+   */
+  _syncColorScheme() {
+    const text = getComputedStyle(this).color;
+    const [r = 0, g = 0, b = 0] = (text.match(/[\d.]+/g) || []).map(Number);
+    const lightText = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.5;
+    this.style.setProperty('--hb-scheme', lightText ? 'dark' : 'light');
+  }
+
   _render() {
     if (!this._rendered) return;
+    this._syncColorScheme();
     const t = this._t;
     const board = this._board;
 

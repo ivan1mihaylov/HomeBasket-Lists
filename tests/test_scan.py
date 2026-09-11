@@ -188,6 +188,11 @@ class FakeConnection:
         self.error = (code, message)
 
 
+async def _ready(value):
+    """Hand a value back as something that can be awaited."""
+    return value
+
+
 def check(label: str, actual, expected) -> None:
     if actual != expected:
         raise AssertionError(f"{label}: got {actual!r}, expected {expected!r}")
@@ -346,6 +351,78 @@ async def main() -> None:
     check("...and it learns what it is", counted["type"], "food")
 
     hass.data["homebasket_api"] = homebasket
+    kept = len(runtime.store.items)
+
+    # --- what a list configures is kept by HomeBasket too -------------------
+    class Keeper(FakeHomeBasket):
+        """HomeBasket, keeping what a list hands it."""
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.kept = {}
+            self.photos = {}
+
+        @property
+        def products(self):
+            return list(self.kept.values())
+
+        def get(self, code):
+            return self.kept.get(code)
+
+        async def async_remember_product(self, name, *, department=None, photo=None, **rest):
+            for product in self.kept.values():
+                if product["name"].casefold() == name.casefold():
+                    if department and not product.get("department"):
+                        product["department"] = department
+                    if photo and product["code"] not in self.photos:
+                        self.photos[product["code"]] = photo
+                    return product
+            code = f"local:{name.casefold()}"
+            self.kept[code] = {"code": code, "codes": [code], "name": name,
+                               "kind": None, "department": department, "source": "list"}
+            if photo:
+                self.photos[code] = photo
+            return self.kept[code]
+
+        async def async_set_department(self, code, department):
+            self.kept[code]["department"] = department
+            return True
+
+        async def async_set_photo(self, code, photo):
+            self.photos[code] = photo
+            return True
+
+    keeper = Keeper()
+    hass.data["homebasket_api"] = keeper
+    runtime.images = types.SimpleNamespace(
+        async_get=lambda uid: _ready("data:image/jpeg;base64,AAA"),
+        has=lambda uid: True,
+    )
+
+    item, _ = await runtime.async_add_or_increase("Bread from the bakery", type="food")
+    check("something with no barcode is kept by HomeBasket", item["product_code"], "local:bread from the bakery")
+    check("...under the name it was given", keeper.kept[item["product_code"]]["name"], "Bread from the bakery")
+
+    again, outcome = await runtime.async_add_or_increase("Bread from the bakery", type="food")
+    check("adding it again is the same product", again["product_code"], item["product_code"])
+    check("...counted, not kept twice", (outcome, len(keeper.kept)), ("counted", 1))
+
+    await runtime.async_update_item(item["uid"], department="bakery")
+    check(
+        "configuring it configures the product",
+        keeper.kept[item["product_code"]]["department"],
+        "bakery",
+    )
+    await runtime.async_remember_item(item["uid"])
+    check("...and its picture goes over too", bool(keeper.photos.get(item["product_code"])), True)
+
+    # A task is the list's own business, not a product.
+    chore, _ = await runtime.async_add_or_increase("Sweep the yard", type="task")
+    check("a task is not made into a product", chore.get("product_code"), None)
+    check("...and HomeBasket still holds one thing", len(keeper.kept), 1)
+
+    hass.data["homebasket_api"] = homebasket
+    runtime.images = types.SimpleNamespace(async_get=lambda uid: _ready(None), has=lambda uid: False)
     kept = len(runtime.store.items)
 
     # --- a barcode nobody knows -------------------------------------------

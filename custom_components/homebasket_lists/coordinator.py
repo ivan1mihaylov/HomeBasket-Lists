@@ -20,6 +20,8 @@ from .const import (
     KEPT,
     PRODUCT_KINDS,
     SIGNAL_UPDATED,
+    TYPE_FOOD,
+    TYPE_PRODUCT,
     TYPE_TASK,
 )
 from .options import (
@@ -161,6 +163,17 @@ class ListRuntime:
 
         fields = apply_type(self.entry, fields)
         fields = fill_amount(fields, fields.get("type"), self.hass)
+
+        # Something to buy that HomeBasket has never heard of is handed over
+        # to it, so what is configured here is known everywhere - and can be
+        # given a barcode there later.
+        if not fields.get("product_code") and self._remembers(fields.get("type")):
+            code = await self.products.async_remember(
+                summary, department=fields.get("department")
+            )
+            if code:
+                fields["product_code"] = code
+
         item = await self.store.async_add(summary=summary, **fields)
         await self.async_changed()
         return item, ADDED
@@ -204,15 +217,58 @@ class ListRuntime:
             [item["uid"] for item in self.store.items]
         )
 
+    def _remembers(self, kind: str | None) -> bool:
+        """Return whether something of this kind is HomeBasket's to know.
+
+        What you buy is a product; a task is this list's own business.
+        """
+        return (
+            kind in (TYPE_FOOD, TYPE_PRODUCT)
+            and self.sync.link_products
+            and self.products.available
+        )
+
     async def async_update_item(self, uid: str, **fields: Any) -> dict[str, Any] | None:
-        """Change an item, keeping the kind the list requires."""
+        """Change an item, keeping the kind the list requires.
+
+        Configuring something to buy configures the product behind it: the
+        picture and the kind of shop reach HomeBasket, and something it has
+        never heard of is handed over now rather than only when it is added.
+        """
         if "type" in fields:
             fields = apply_type(self.entry, fields)
         item = await self.store.async_update(uid, **fields)
         if item is None:
             return None
+
+        if self._remembers(item.get("type")):
+            await self._async_remember(item)
+
         await self.async_changed()
         return item
+
+    async def async_remember_item(self, uid: str) -> None:
+        """Keep one item's product in HomeBasket, if it is one to keep."""
+        item = self.store.get(uid)
+        if item is not None and self._remembers(item.get("type")):
+            await self._async_remember(item)
+
+    async def _async_remember(self, item: dict[str, Any]) -> None:
+        """Keep what was configured here in HomeBasket too."""
+        photo = await self.images.async_get(item["uid"])
+        code = item.get("product_code")
+
+        if not code:
+            code = await self.products.async_remember(
+                item["summary"], department=item.get("department"), photo=photo
+            )
+            if code:
+                await self.store.async_update(item["uid"], product_code=code)
+            return
+
+        await self.products.async_update_remembered(
+            code, department=item.get("department"), photo=photo
+        )
 
     async def async_enforce_types(self) -> int:
         """Give every item a kind the list allows. Returns how many changed.

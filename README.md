@@ -165,6 +165,20 @@ and serves it from your own installation — nothing is fetched from a CDN, and
 there is nothing to set up. `zxing_url` points the card at a build of your own
 instead.
 
+### What you configure here is kept by HomeBasket
+
+HomeBasket owns the products; this list should not be the only place that knows
+one. So anything to buy that is added or configured here — its name, its
+picture, the kind of shop it comes from — is handed to HomeBasket as a product
+without a barcode, if HomeBasket is installed and **Recognise HomeBasket
+products** is on.
+
+From then on it is offered by name as you type, anywhere, with everything it
+already knows. In the HomeBasket card you can give it a barcode by hand, after
+which scanning that barcode finds this same product.
+
+Tasks stay here: they are the list's own business, not products.
+
 ### Which shop each kind of thing is worth a reminder in
 
 Items belong to a category of shop — groceries, bakery, greengrocer, butcher,
