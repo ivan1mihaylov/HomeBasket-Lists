@@ -161,6 +161,27 @@ RESPONSES: dict[str, dict[str, str]] = {
 }
 
 
+# A unit is written short on a list and said in full: "2 бр." is read out as
+# "2 броя". Each entry is (one, more than one).
+SPOKEN_UNITS: dict[str, dict[str, tuple[str, str]]] = {
+    "en": {
+        "pcs": ("piece", "pieces"),
+        "pcs.": ("piece", "pieces"),
+        "kg": ("kilogram", "kilograms"),
+        "g": ("gram", "grams"),
+        "l": ("litre", "litres"),
+        "ml": ("millilitre", "millilitres"),
+    },
+    "bg": {
+        "бр": ("брой", "броя"),
+        "бр.": ("брой", "броя"),
+        "кг": ("килограм", "килограма"),
+        "г": ("грам", "грама"),
+        "л": ("литър", "литра"),
+        "мл": ("милилитър", "милилитра"),
+    },
+}
+
 SHORT_UNITS: dict[str, dict[str, str]] = {
     "en": {"minutes": "min", "hours": "h", "days": "days"},
     "bg": {"minutes": "мин", "hours": "ч", "days": "дни"},
@@ -176,28 +197,51 @@ def _words(language: str, key: str, **fields: Any) -> str:
     return table[key].format(**fields)
 
 
-def _number(value: Any) -> str | None:
-    """Return a quantity as it would be said: 2, not 2.0."""
+def _number(value: Any, language: str) -> str | None:
+    """Return a number as it would be said: 2, not 2.0, and 1,5 in Bulgarian."""
     try:
         number = float(value)
     except (TypeError, ValueError):
         return None
-    return str(int(number)) if number.is_integer() else f"{number:g}"
+    if number.is_integer():
+        return str(int(number))
+
+    written = f"{number:g}"
+    return written.replace(".", ",") if language == "bg" else written
 
 
-def _amount(item: dict[str, Any]) -> str:
-    """Return a product with its quantity: "мляко 2 бр."."""
+def _spoken_unit(unit: str, quantity: float, language: str) -> str:
+    """Return a unit as it is said, not as it is written on the list."""
+    table = SPOKEN_UNITS.get(language, SPOKEN_UNITS["en"])
+    if (pair := table.get(unit.casefold())) is None:
+        return unit
+
+    if language == "bg":
+        # Bulgarian agrees with the last digit: 1 and 21 take the singular
+        # form, 11 does not.
+        whole = int(quantity)
+        one = quantity == whole and whole % 10 == 1 and whole % 100 != 11
+    else:
+        one = quantity == 1
+    return pair[0] if one else pair[1]
+
+
+def _amount(item: dict[str, Any], language: str) -> str:
+    """Return a product with its quantity, as it is said: "мляко 2 броя"."""
     summary = item.get("summary") or ""
-    if (number := _number(item.get("quantity"))) is None:
+    if (written := _number(item.get("quantity"), language)) is None:
         return summary
+
     unit = (item.get("unit") or "").strip()
-    return " ".join(part for part in (summary, number, unit) if part)
+    if unit:
+        unit = _spoken_unit(unit, float(item["quantity"]), language)
+    return " ".join(part for part in (summary, written, unit) if part)
 
 
 def _task(item: dict[str, Any], language: str) -> str:
     """Return a task with how long it takes, when that is known."""
     summary = item.get("summary") or ""
-    if (number := _number(item.get("duration"))) is None:
+    if (number := _number(item.get("duration"), language)) is None:
         return summary
     units = SHORT_UNITS.get(language, SHORT_UNITS["en"])
     unit = units.get(item.get("duration_unit") or "", "")
@@ -216,7 +260,7 @@ def _by_shop(runtime: Any, items: list[dict[str, Any]], language: str) -> str:
 
     parts = []
     for store, group in groups.items():
-        names = ", ".join(_amount(item) for item in group)
+        names = ", ".join(_amount(item, language) for item in group)
         if store:
             parts.append(
                 _words(

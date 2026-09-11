@@ -178,7 +178,7 @@ async def main() -> None:
     check(
         "what to buy says the shop and the quantity",
         await say(shopping, one),
-        "4 неща за купуване: от Lidl: мляко 2 бр., хляб; от Kaufland: тиква; "
+        "4 неща за купуване: от Lidl: мляко 2 броя, хляб; от Kaufland: тиква; "
         "където и да е: батерии.",
     )
     check(
@@ -202,6 +202,27 @@ async def main() -> None:
         await say(shopping, both, hb_list="ремон"),
         "1 нещо за купуване: от Kaufland: боя 5 литра.",
     )
+
+    # A unit is written short and said in full.
+    counted = FakeRuntime(
+        "Брой",
+        [
+            item("кисело мляко", quantity=1, unit="бр."),
+            item("яйца", quantity=10, unit="бр"),
+            item("ябълки", quantity=21, unit="бр."),
+            item("банани", quantity=11, unit="бр."),
+            item("сирене", quantity=1, unit="кг"),
+            item("кайма", quantity=1.5, unit="кг"),
+            item("мляко", quantity=2, unit="литра"),
+        ],
+    )
+    check(
+        "short units are said in full, agreeing with the number",
+        await say(shopping, FakeHass([counted])),
+        "7 неща за купуване: където и да е: кисело мляко 1 брой, яйца 10 броя, "
+        "ябълки 21 брой, банани 11 броя, сирене 1 килограм, кайма 1,5 килограма, "
+        "мляко 2 литра.",
+    )
     check(
         "asking about a list that is not set up",
         await say(tasks, FakeHass([repairs]), hb_list="Пазар"),
@@ -223,10 +244,21 @@ async def main() -> None:
         "Не намерих такъв списък.",
     )
     check(
+        # A unit the answer's language does not know is said as it was typed,
+        # rather than guessed at.
         "and it all works in English too",
         await say(shopping, one, language="en"),
         "4 things to buy: from Lidl: мляко 2 бр., хляб; from Kaufland: тиква; "
         "anywhere: батерии.",
+    )
+    check(
+        "an English list says its own units in full",
+        await say(
+            shopping,
+            FakeHass([FakeRuntime("Shopping", [item("eggs", quantity=10, unit="pcs")])]),
+            language="en",
+        ),
+        "1 thing to buy: anywhere: eggs 10 pieces.",
     )
 
     # --- ticking off without saying which list -----------------------------
