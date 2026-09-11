@@ -306,6 +306,14 @@ automation:
             {{ shopping['items'] | map(attribute='summary') | join(', ') }}
 ```
 
+## The icon
+
+The basket shown on the integrations page comes with the integration itself, in
+`custom_components/homebasket_lists/brand/`. Home Assistant 2026.3 and later
+serve it from there and prefer it over the central
+[brands repository](https://github.com/home-assistant/brands), so there is
+nothing to submit anywhere; older versions simply ignore the files.
+
 ## Voice
 
 The lists are not to-do entities, so the built-in list phrases cannot reach
