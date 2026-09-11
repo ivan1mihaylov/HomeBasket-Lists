@@ -1,6 +1,11 @@
 {
   "domain": "homebasket_lists",
   "name": "HomeBasket Lists",
+  "after_dependencies": [
+    "homebasket",
+    "conversation",
+    "lovelace"
+  ],
   "codeowners": [
     "@ivan1mihaylov"
   ],
@@ -11,15 +16,10 @@
     "todo",
     "websocket_api"
   ],
-  "after_dependencies": [
-    "homebasket",
-    "conversation",
-    "lovelace"
-  ],
   "documentation": "https://github.com/ivan1mihaylov/HomeBasket-Lists",
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/ivan1mihaylov/HomeBasket-Lists/issues",
   "requirements": [],
-  "version": "0.14.4"
+  "version": "0.14.5"
 }

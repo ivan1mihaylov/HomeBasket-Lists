@@ -1,2 +1,3 @@
-The icon's blue is its own now — `#1E9BE0` rather than the blue of the Home
-Assistant logo, which a custom integration should not wear.
+The manifest's keys are in the order Home Assistant's own `hassfest` check
+wants: domain, name, then the rest alphabetically. Nothing about the
+integration changes — but the check has to pass before HACS will list it.
