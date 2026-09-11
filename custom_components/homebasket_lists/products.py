@@ -153,19 +153,24 @@ class ProductLink:
         self,
         code: str | None,
         *,
+        name: str | None = None,
         department: str | None = None,
         photo: str | None = None,
     ) -> None:
         """Pass a change to a product this side configured back to HomeBasket.
 
-        Only for products HomeBasket has no barcode for, which are the ones a
-        list made: what Open Food Facts named is not a list's to rewrite.
+        Renaming a line renames the product behind it, and so for its picture
+        and the kind of shop it comes from. Only for products HomeBasket has
+        no barcode for, which are the ones a list made: what Open Food Facts
+        named is not a list's to rewrite.
         """
         api = self.api
         if not code or api is None or not is_local(code):
             return
 
         try:
+            if name and hasattr(api, "async_rename_product"):
+                await api.async_rename_product(code, name)
             if department:
                 await api.async_set_department(code, department)
             if photo is not None and hasattr(api, "async_set_photo"):

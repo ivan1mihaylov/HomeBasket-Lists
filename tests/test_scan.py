@@ -392,6 +392,10 @@ async def main() -> None:
             self.photos[code] = photo
             return True
 
+        async def async_rename_product(self, code, name):
+            self.kept[code]["name"] = name
+            return True
+
     keeper = Keeper()
     hass.data["homebasket_api"] = keeper
     runtime.images = types.SimpleNamespace(
@@ -416,10 +420,34 @@ async def main() -> None:
     await runtime.async_remember_item(item["uid"])
     check("...and its picture goes over too", bool(keeper.photos.get(item["product_code"])), True)
 
+    # Renaming the line renames the product behind it.
+    await runtime.async_update_item(item["uid"], summary="Bakery bread")
+    check(
+        "renaming a line renames its product",
+        keeper.kept[item["product_code"]]["name"],
+        "Bakery bread",
+    )
+    check("...rather than making a second one", len(keeper.kept), 1)
+
+    # A product a database named is not a list's to rewrite.
+    keeper.kept["3800065123456"] = {
+        "code": "3800065123456", "codes": ["3800065123456"],
+        "name": "Pilos milk 2 l", "kind": "food", "department": "groceries",
+    }
+    bought, _ = await runtime.async_add_or_increase(
+        "Pilos milk 2 l", type="food", product_code="3800065123456"
+    )
+    await runtime.async_update_item(bought["uid"], summary="The milk")
+    check(
+        "renaming a line of a scanned product leaves the product alone",
+        keeper.kept["3800065123456"]["name"],
+        "Pilos milk 2 l",
+    )
+
     # A task is the list's own business, not a product.
     chore, _ = await runtime.async_add_or_increase("Sweep the yard", type="task")
     check("a task is not made into a product", chore.get("product_code"), None)
-    check("...and HomeBasket still holds one thing", len(keeper.kept), 1)
+    check("...and HomeBasket holds no more than it did", len(keeper.kept), 2)
 
     hass.data["homebasket_api"] = homebasket
     runtime.images = types.SimpleNamespace(async_get=lambda uid: _ready(None), has=lambda uid: False)

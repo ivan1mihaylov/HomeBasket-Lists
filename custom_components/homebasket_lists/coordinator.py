@@ -267,7 +267,10 @@ class ListRuntime:
             return
 
         await self.products.async_update_remembered(
-            code, department=item.get("department"), photo=photo
+            code,
+            name=item["summary"],
+            department=item.get("department"),
+            photo=photo,
         )
 
     async def async_enforce_types(self) -> int:

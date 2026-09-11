@@ -177,6 +177,11 @@ From then on it is offered by name as you type, anywhere, with everything it
 already knows. In the HomeBasket card you can give it a barcode by hand, after
 which scanning that barcode finds this same product.
 
+Renaming the line renames the product too, as changing its picture or its shop
+category changes the product's. Only products a list made are kept up to date
+this way: what Open Food Facts named is not a list's to rewrite, so renaming a
+line of a scanned product changes only the line.
+
 Tasks stay here: they are the list's own business, not products.
 
 ### Which shop each kind of thing is worth a reminder in
