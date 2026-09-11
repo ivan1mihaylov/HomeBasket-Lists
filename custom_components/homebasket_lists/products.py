@@ -15,7 +15,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import HOMEBASKET_API
+from .const import HOMEBASKET_API, PRODUCT_KINDS
 from .store import normalize_summary
 
 
@@ -76,6 +76,25 @@ class ProductLink:
         if not code or (api := self.api) is None:
             return None
         return await api.async_get_details(code)
+
+    async def async_kind(self, code: str | None) -> str | None:
+        """Return what a barcode is, as one of this list's kinds.
+
+        HomeBasket binds a product to the database that knew its barcode: Open
+        Food Facts means groceries, Open Pet Food Facts what the cat eats, Open
+        Beauty Facts a cosmetic, Open Products Facts a thing. A list splits
+        things more coarsely, so the four become shopping or a thing.
+
+        A product saved before HomeBasket told one from the other has no kind;
+        asking for its record settles it there too, once and for good.
+        """
+        if not code or (product := self.get(code)) is None:
+            return None
+
+        kind = product.get("kind")
+        if not kind:
+            kind = ((await self.async_details(code)) or {}).get("kind")
+        return PRODUCT_KINDS.get(kind) if kind else None
 
     async def async_scan(self, code: str) -> dict[str, Any] | None:
         """Run a barcode through HomeBasket and return what it is.

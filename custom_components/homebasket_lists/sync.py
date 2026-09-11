@@ -29,7 +29,7 @@ from homeassistant.helpers.event import (
 )
 
 from .const import CONF_LINK_PRODUCTS, CONF_LINKED_LISTS, DEFAULT_LINK_PRODUCTS
-from .options import apply_type
+from .options import apply_type, buyable_type
 from .products import ProductLink
 from .store import (
     STATUS_COMPLETED,
@@ -196,16 +196,18 @@ class ListSync:
                 if previous is not None:
                     continue
 
-                # A list fixed to one kind gives it to what it adopts too, so
-                # a line from a plain to-do list arrives as a task or a
-                # product rather than as neither.
+                # A line from a plain to-do list arrives as what it is: a
+                # product HomeBasket knows brings its kind with it, and a list
+                # fixed to one kind gives that to everything it adopts.
+                code = self._match_product(summary)
                 await self.store.async_add(
                     **apply_type(
                         self.entry,
                         {
                             "summary": summary,
                             "status": item["status"],
-                            "product_code": self._match_product(summary),
+                            "product_code": code,
+                            "type": await self._async_kind(code),
                         },
                     )
                 )
@@ -283,16 +285,38 @@ class ListSync:
         product = self.products.match(summary)
         return product["code"] if product else None
 
+    async def _async_kind(self, code: str | None) -> str | None:
+        """Return what HomeBasket says a barcode is, for this list.
+
+        Something HomeBasket knows is something you buy, so even a product
+        none of the databases will name gets the list's first buyable kind
+        rather than no kind at all.
+        """
+        if code is None:
+            return None
+        return await self.products.async_kind(code) or buyable_type(self.entry)
+
     async def async_link_products(self) -> int:
-        """Attach products to items that have none. Returns how many were linked."""
+        """Attach products to items that have none, and kinds to go with them.
+
+        An item that came from a to-do list is only a name, so what it turns
+        out to be is settled here. Returns how many items changed.
+        """
         if not self.link_products or not self.products.available:
             return 0
 
-        linked = 0
+        changed = 0
         for item in list(self.store.items):
-            if item.get("product_code"):
+            code = item.get("product_code") or self._match_product(item["summary"])
+            if code is None:
                 continue
-            if (code := self._match_product(item["summary"])) is not None:
-                await self.store.async_update(item["uid"], product_code=code)
-                linked += 1
-        return linked
+
+            changes: dict[str, Any] = {}
+            if not item.get("product_code"):
+                changes["product_code"] = code
+            if not item.get("type") and (kind := await self._async_kind(code)):
+                changes["type"] = kind
+            if changes:
+                await self.store.async_update(item["uid"], **apply_type(self.entry, changes))
+                changed += 1
+        return changed

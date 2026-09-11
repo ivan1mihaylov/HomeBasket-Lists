@@ -20,13 +20,12 @@ from .const import (
     KEPT,
     PRODUCT_KINDS,
     SIGNAL_UPDATED,
-    TYPE_FOOD,
-    TYPE_PRODUCT,
     TYPE_TASK,
 )
 from .options import (
     allowed_types,
     apply_type,
+    buyable_type,
     coerce_type,
     duplicates,
     forced_type,
@@ -143,44 +142,22 @@ class ListRuntime:
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
 
-        # HomeBasket binds a product's kind to the database that knew the
-        # barcode: groceries come from Open Food Facts, things from Open
-        # Products Facts, and so on. An item that arrives without a kind asks
-        # HomeBasket for the product's, rather than guessing from the name.
+        # An item that arrives without a kind asks HomeBasket what the product
+        # turned out to be, rather than landing without one.
         if not fields.get("type") and fields.get("product_code"):
-            fields["type"] = await self._async_kind_of(fields["product_code"])
+            fields["type"] = await self.products.async_kind(
+                fields["product_code"]
+            ) or buyable_type(self.entry)
 
         if not fields.get("store"):
             guess = await self.async_guess_store(fields.get("product_code"))
             if guess is not None:
                 fields["store"] = guess
 
-        # Something HomeBasket knows is something you buy, even when it is too
-        # old to say which kind - a list would rather have it as shopping than
-        # as a line with no kind at all.
-        if not fields.get("type") and fields.get("product_code"):
-            fields["type"] = next(
-                (kind for kind in self.item_types if kind in (TYPE_FOOD, TYPE_PRODUCT)),
-                None,
-            )
-
         fields = apply_type(self.entry, fields)
         item = await self.store.async_add(summary=summary, **fields)
         await self.async_changed()
         return item, ADDED
-
-    async def _async_kind_of(self, code: str) -> str | None:
-        """Return the list's kind for a barcode, as HomeBasket sees it.
-
-        The product's own kind comes first. A product learned before HomeBasket
-        told a grocery from a thing has none, so the databases are asked once -
-        which settles it for HomeBasket too, and never has to happen again.
-        """
-        product = self.products.get(code)
-        kind = (product or {}).get("kind")
-        if not kind and product is not None:
-            kind = ((await self.products.async_details(code)) or {}).get("kind")
-        return PRODUCT_KINDS.get(kind) if kind else None
 
     async def _async_increase(
         self, item: dict[str, Any], fields: dict[str, Any]

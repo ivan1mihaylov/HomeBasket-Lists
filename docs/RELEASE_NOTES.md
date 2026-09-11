@@ -1,9 +1,16 @@
-**An item takes its kind from the database that knew its barcode.** Anything
-that arrives with a barcode but without a kind — a scan from the HomeBasket
-card, an older HomeBasket, a product learned before groceries and things were
-told apart — now asks HomeBasket what the product turned out to be. Open Food
-Facts means groceries, Open Products Facts means a thing. Only a product none
-of the databases knows falls back to the first kind the list allows.
+**An item that arrives from a to-do list is still a product.**
 
-A line that was already on the list and never had a kind learns one when it is
-scanned, instead of staying without.
+When HomeBasket is set to put scans on a built-in to-do list, and that list is
+linked to one of these, the item came across as nothing but a name. It was
+matched to the HomeBasket product — the picture and the nutrition were there —
+but it had no kind, so it showed as **Без / None** whatever the databases had
+said about it.
+
+Every way onto a list now settles that the same way: the barcode says which
+database knew the product, and that is the kind the item gets. Open Food Facts
+means groceries, Open Pet Food Facts what the cat eats, Open Beauty Facts a
+cosmetic, Open Products Facts a thing — the last two arriving as things, the
+first two as shopping.
+
+Items already sitting on a list without a kind are given one on the next pass,
+so a restart is enough to settle what is already there.

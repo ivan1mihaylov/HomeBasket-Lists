@@ -18,6 +18,8 @@ from .const import (
     DEFAULT_ITEM_TYPES,
     DUPLICATES,
     ITEM_TYPES,
+    TYPE_FOOD,
+    TYPE_PRODUCT,
 )
 
 
@@ -83,6 +85,19 @@ def apply_type(entry: ConfigEntry, fields: dict[str, Any]) -> dict[str, Any]:
     if "type" not in fields and wanted is None:
         return fields
     return {**fields, "type": wanted}
+
+
+def buyable_type(entry: ConfigEntry) -> str | None:
+    """Return the kind this list gives something to buy that it cannot place.
+
+    Something HomeBasket knows is something you buy, even when none of the
+    databases will say which kind - a list would rather have it as shopping
+    than as a line with no kind at all.
+    """
+    return next(
+        (kind for kind in allowed_types(entry) if kind in (TYPE_FOOD, TYPE_PRODUCT)),
+        None,
+    )
 
 
 def duplicates(entry: ConfigEntry) -> str:

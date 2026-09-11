@@ -143,6 +143,37 @@ class NoProducts:
         return None
 
 
+class Products:
+    """HomeBasket, holding two products it knows by name and barcode."""
+
+    available = True
+    known = {
+        "3800091500130": {
+            "code": "3800091500130",
+            "name": "Натурална минерална вода Велинград 1,5 L",
+            "kind": "food",
+        },
+        "8006540889824": {"code": "8006540889824", "name": "Шампоан", "kind": "beauty"},
+    }
+
+    def match(self, summary):
+        return next(
+            (p for p in self.known.values() if p["name"] == summary),
+            None,
+        )
+
+    def get(self, code):
+        return self.known.get(code)
+
+    async def async_details(self, code):
+        return None
+
+    async def async_kind(self, code):
+        from homebasket_lists.products import ProductLink
+
+        return await ProductLink.async_kind(self, code)
+
+
 def ours(store: ListStore) -> set[tuple[str, str]]:
     return {(item["summary"], item["status"]) for item in store.items}
 
@@ -244,6 +275,48 @@ async def main() -> None:
         todo,
         {("Хляб", "completed"), ("Сирене", "needs_action")},
     )
+
+    # --- a line from a to-do list is still a product ------------------------
+    # This is how a scan reaches a list when HomeBasket writes to a to-do
+    # entity rather than straight to the list: only a name arrives.
+    todo = FakeTodo()
+    hass = FakeHass(todo)
+    store = ListStore(None, "entry2")
+    await store.async_load()
+    entry = FakeEntry()
+    entry.options["link_products"] = True
+    linked = ListSync(hass, entry, store, Products())
+
+    todo.add("Натурална минерална вода Велинград 1,5 L")
+    todo.add("Шампоан")
+    todo.add("Да платя тока")
+    await linked.async_sync()
+
+    def kind_of(summary):
+        return store.find_by_summary(summary).get("type")
+
+    print("  ok  a to-do line is adopted")
+    for label, summary, expected in (
+        ("what Open Food Facts knew arrives as a grocery", "Натурална минерална вода Велинград 1,5 L", "food"),
+        ("what Open Beauty Facts knew arrives as a thing", "Шампоан", "product"),
+        ("and a line that is no product arrives without a kind", "Да платя тока", None),
+    ):
+        actual = kind_of(summary)
+        if actual != expected:
+            raise AssertionError(f"{label}: got {actual!r}, expected {expected!r}")
+        print(f"  ok  {label}")
+
+    # An item that has been sitting there without a kind since before any of
+    # this learns one on the next pass.
+    plain = await store.async_add(summary="Шампоан 2")
+    await store.async_update(plain["uid"], product_code="8006540889824")
+    changed = await linked.async_link_products()
+    if store.find_by_summary("Шампоан 2").get("type") != "product":
+        raise AssertionError("an item already linked to a product kept no kind")
+    print("  ok  one already on the list learns what it is on the next pass")
+    if changed != 1:
+        raise AssertionError(f"expected one change, got {changed}")
+    print("  ok  ...and nothing else is touched")
 
     print("\nAll sync checks passed.")
 
