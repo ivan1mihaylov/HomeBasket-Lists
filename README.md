@@ -166,10 +166,10 @@ is where Assist looks for phrases a custom integration adds.
 | *какво имам да правя* / *what do I have to do* | The tasks still open, each with how long it takes. |
 | *какво имам да правя по Ремонт* / *what are my tasks on Ремонт* | The same, for one list. |
 
-Quantities are said rather than read out: an item written *2 бр.* is spoken as
-*2 броя*, *1 бр.* as *1 брой*, and the same for кг, г, л and мл (pcs, kg, g, l
-and ml in English). A unit the answer's language does not know is said exactly
-as it was typed.
+Quantities are said rather than read out: an item written *яйца, 5 бр.* is
+spoken as *5 броя яйца* — how many first, as it is said out loud — and the same
+for кг, г, л and мл. A unit the answer's language does not know is said exactly
+as it was typed, and English keeps its own order: *eggs 5 pcs*.
 
 The last two answer for every list at once when no list is named, and say which
 list each thing is on. They ask about kinds, so *what do I need to buy* returns

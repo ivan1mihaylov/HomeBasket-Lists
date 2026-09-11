@@ -222,7 +222,7 @@ def _spoken_unit(unit: str, quantity: float, language: str) -> str:
 
 
 def _amount(item: dict[str, Any], language: str) -> str:
-    """Return a product with its quantity, as it is said: "мляко 2 броя"."""
+    """Return a product with its quantity, as it is said: "5 броя яйца"."""
     summary = item.get("summary") or ""
     if (written := _number(item.get("quantity"), language)) is None:
         return summary
@@ -230,7 +230,11 @@ def _amount(item: dict[str, Any], language: str) -> str:
     unit = (item.get("unit") or "").strip()
     if unit:
         unit = _spoken_unit(unit, float(item["quantity"]), language)
-    return " ".join(part for part in (summary, written, unit) if part)
+
+    # Bulgarian says how many first - "5 броя яйца". English does not put a
+    # bare count in front of the thing, so there the name leads.
+    order = (written, unit, summary) if language == "bg" else (summary, written, unit)
+    return " ".join(part for part in order if part)
 
 
 def _task(item: dict[str, Any], language: str) -> str:

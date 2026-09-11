@@ -178,7 +178,7 @@ async def main() -> None:
     check(
         "what to buy says the shop and the quantity",
         await say(shopping, one),
-        "4 неща за купуване: от Lidl: мляко 2 броя, хляб; от Kaufland: тиква; "
+        "4 неща за купуване: от Lidl: 2 броя мляко, хляб; от Kaufland: тиква; "
         "където и да е: батерии.",
     )
     check(
@@ -200,7 +200,7 @@ async def main() -> None:
     check(
         "part of a list's name is enough",
         await say(shopping, both, hb_list="ремон"),
-        "1 нещо за купуване: от Kaufland: боя 5 литра.",
+        "1 нещо за купуване: от Kaufland: 5 литра боя.",
     )
 
     # A unit is written short and said in full.
@@ -219,9 +219,9 @@ async def main() -> None:
     check(
         "short units are said in full, agreeing with the number",
         await say(shopping, FakeHass([counted])),
-        "7 неща за купуване: където и да е: кисело мляко 1 брой, яйца 10 броя, "
-        "ябълки 21 броя, банани 11 броя, сирене 1 килограм, кайма 1,5 килограма, "
-        "мляко 2 литра.",
+        "7 неща за купуване: където и да е: 1 брой кисело мляко, 10 броя яйца, "
+        "21 броя ябълки, 11 броя банани, 1 килограм сирене, 1,5 килограма кайма, "
+        "2 литра мляко.",
     )
     check(
         "asking about a list that is not set up",
