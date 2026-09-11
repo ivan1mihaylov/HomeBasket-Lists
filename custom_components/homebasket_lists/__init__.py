@@ -202,8 +202,10 @@ def _async_register_services(hass: HomeAssistant) -> None:
         runtime = _one(hass, call.data.get(ATTR_LIST))
         fields = _fields(call, *SETTABLE)
 
-        item = await runtime.async_add_item(call.data[ATTR_SUMMARY], **fields)
-        return {"item": item}
+        item, increased = await runtime.async_add_or_increase(
+            call.data[ATTR_SUMMARY], **fields
+        )
+        return {"item": item, "increased": increased}
 
     async def async_update_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))

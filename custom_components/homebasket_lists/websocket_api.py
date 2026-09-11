@@ -137,10 +137,10 @@ async def websocket_add_item(
 ) -> None:
     """Add an item to a list."""
     runtime = _runtime(hass, msg["entry_id"])
-    item = await runtime.async_add_item(
+    item, increased = await runtime.async_add_or_increase(
         msg["summary"], **_item_fields(msg, skip=("summary",))
     )
-    connection.send_result(msg["id"], {"item": item})
+    connection.send_result(msg["id"], {"item": item, "increased": increased})
 
 
 @ws.websocket_command(

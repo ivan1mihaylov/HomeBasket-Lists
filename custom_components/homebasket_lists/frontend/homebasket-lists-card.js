@@ -36,6 +36,7 @@ const TRANSLATIONS = {
     unit: 'Unit',
     unitHint: 'Free text — pieces, kg, litres, whatever fits.',
     defaultUnit: 'pcs',
+    countedUp: (name, count) => `${name}: ${count} now`,
     less: 'One less',
     more: 'One more',
     suggestionsHint: 'Not on the list — tap to add',
@@ -120,6 +121,7 @@ const TRANSLATIONS = {
     unit: 'Мерна единица',
     unitHint: 'Свободен текст — бр., кг, литра, каквото пасва.',
     defaultUnit: 'бр.',
+    countedUp: (name, count) => `${name}: станаха ${count}`,
     less: 'С едно по-малко',
     more: 'С едно повече',
     suggestionsHint: 'Не са в списъка — натисни, за да добавиш',
@@ -953,13 +955,19 @@ class HomeBasketListsCard extends HTMLElement {
       // fixed to another kind or the caller says otherwise.
       const fixed = this._fixedType();
       const kind = fixed === null ? TYPE_PRODUCT : fixed;
-      await this._call('homebasket_lists/item/add', {
+      const result = await this._call('homebasket_lists/item/add', {
         entry_id: this._board.entry_id,
         summary: text,
         item_type: kind || null,
         ...(isProduct(kind) ? { quantity: 1, unit: this._t.defaultUnit } : {}),
         ...extra,
       });
+      // Adding something the list already has counts one more of it, which
+      // would otherwise look like nothing happened.
+      if (result?.increased) {
+        const item = result.item || {};
+        toast(this.shadowRoot, this._t.countedUp(item.summary || text, item.quantity ?? ''));
+      }
       this._input.value = '';
     } catch (err) {
       toast(this.shadowRoot, err.message || this._t.noAnswer, true);

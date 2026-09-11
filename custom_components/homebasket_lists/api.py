@@ -5,6 +5,9 @@
         for board in api.lists:
             print(board["name"], len(board["items"]))
 
+        # Adding what a list already has counts one more of it.
+        await api.async_add_item("Мляко", quantity=1, unit="бр.")
+
 Listen for `homebasket_lists_updated` to know when something changed.
 """
 
@@ -15,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .store import STATUS_NEEDS_ACTION
+from .store import STATUS_NEEDS_ACTION, normalize_summary
 
 if TYPE_CHECKING:
     from .coordinator import ListRuntime
@@ -65,6 +68,52 @@ class HomeBasketListsAPI:
                 if assigned == store or (assigned is None and include_unassigned):
                     found.append({**item, "list": runtime.name, "entry_id": runtime.entry.entry_id})
         return found
+
+    # ------------------------------------------------------------------
+    # Putting something on a list
+    # ------------------------------------------------------------------
+    def pick(self, *, entry_id: str | None = None, name: str | None = None) -> Any | None:
+        """Return the list a caller means, or None when that is not clear.
+
+        With neither an id nor a name, the only list there is - so an
+        integration that just wants "the shopping list" gets it without being
+        configured, as long as there is one.
+        """
+        runtimes = self._runtimes()
+        if entry_id is not None:
+            return next((r for r in runtimes if r.entry.entry_id == entry_id), None)
+        if name is not None:
+            wanted = normalize_summary(name)
+            return next((r for r in runtimes if normalize_summary(r.name) == wanted), None)
+        return runtimes[0] if len(runtimes) == 1 else None
+
+    async def async_add_item(
+        self,
+        summary: str,
+        *,
+        entry_id: str | None = None,
+        name: str | None = None,
+        **fields: Any,
+    ) -> dict[str, Any] | None:
+        """Put something on a list, or add one more of it if it is there.
+
+        `fields` takes the same names an item has: quantity, unit, store,
+        product_code, note, type. Returns what happened, or None when there is
+        no such list:
+
+            {"entry_id": ..., "list": ..., "item": {...}, "increased": False}
+        """
+        runtime = self.pick(entry_id=entry_id, name=name)
+        if runtime is None:
+            return None
+
+        item, increased = await runtime.async_add_or_increase(summary, **fields)
+        return {
+            "entry_id": runtime.entry.entry_id,
+            "list": runtime.name,
+            "item": item,
+            "increased": increased,
+        }
 
     def _describe(self, runtime: ListRuntime) -> dict[str, Any]:
         return {

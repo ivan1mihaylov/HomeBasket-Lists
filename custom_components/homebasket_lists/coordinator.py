@@ -12,7 +12,7 @@ from .arrivals import ArrivalWatcher
 from .const import CONF_STORES, EVENT_UPDATED, SIGNAL_UPDATED
 from .options import allowed_types, apply_type, forced_type
 from .products import ProductLink
-from .store import ListStore
+from .store import STATUS_NEEDS_ACTION as STATUS_OPEN, ListStore
 from .sync import ListSync
 
 
@@ -84,10 +84,24 @@ class ListRuntime:
     async def async_add_item(self, summary: str, **fields: Any) -> dict[str, Any]:
         """Add an item, the way every way in should.
 
-        The card, an action, a voice assistant and a linked list all end up
-        here, so a product is recognised, a shop is guessed and the list's own
-        kind is applied exactly once, wherever the item came from.
+        The card, an action, a voice assistant and a scan all end up here, so a
+        product is recognised, a shop is guessed and the list's own kind is
+        applied exactly once, wherever the item came from.
         """
+        item, _ = await self.async_add_or_increase(summary, **fields)
+        return item
+
+    async def async_add_or_increase(
+        self, summary: str, **fields: Any
+    ) -> tuple[dict[str, Any], bool]:
+        """Add an item, or add one more of it when the list already has it.
+
+        Scanning the second bottle of milk means two bottles of milk, not two
+        lines saying milk. Returns the item and whether it was already there.
+        """
+        if (existing := self.store.find_by_summary(summary, status=STATUS_OPEN)) is not None:
+            return await self._async_increase(existing, fields), True
+
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
 
@@ -99,7 +113,28 @@ class ListRuntime:
         fields = apply_type(self.entry, fields)
         item = await self.store.async_add(summary=summary, **fields)
         await self.async_changed()
-        return item
+        return item, False
+
+    async def _async_increase(
+        self, item: dict[str, Any], fields: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Add to what is already on the list rather than repeating it."""
+        more = fields.get("quantity")
+        more = 1.0 if more in (None, "") else float(more)
+        have = item.get("quantity")
+        have = 1.0 if have in (None, "") else float(have)
+
+        changes: dict[str, Any] = {"quantity": have + more}
+        # A unit only arrives with the first one; keep whatever the item has.
+        if not item.get("unit") and fields.get("unit"):
+            changes["unit"] = fields["unit"]
+        # A scan knows the product even when the line was typed by hand.
+        if not item.get("product_code") and fields.get("product_code"):
+            changes["product_code"] = fields["product_code"]
+
+        updated = await self.store.async_update(item["uid"], **changes)
+        await self.async_changed()
+        return updated or item
 
     async def async_update_item(self, uid: str, **fields: Any) -> dict[str, Any] | None:
         """Change an item, keeping the kind the list requires."""

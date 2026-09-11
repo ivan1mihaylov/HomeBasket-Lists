@@ -120,6 +120,7 @@ SENTENCES: dict[str, dict[str, list[str]]] = {
 RESPONSES: dict[str, dict[str, str]] = {
     "en": {
         "added": "Added {item} to {list}.",
+        "increased": "{list} already had {item}, that is {count} now.",
         "completed": "Ticked off {item}.",
         "not_found": "{item} is not on {list}.",
         "empty": "{list} is empty.",
@@ -140,6 +141,7 @@ RESPONSES: dict[str, dict[str, str]] = {
     },
     "bg": {
         "added": "Добавих {item} в {list}.",
+        "increased": "Вече имаше {item} в {list}, станаха {count}.",
         "completed": "Отметнах {item}.",
         "not_found": "{item} го няма в {list}.",
         "empty": "{list} е празен.",
@@ -351,10 +353,23 @@ class AddItemIntent(_ListIntent):
             response.async_set_speech(_words(language, "no_list"))
             return response
 
-        await runtime.async_add_item(summary)
-        response.async_set_speech(
-            _words(language, "added", item=summary, list=runtime.name)
-        )
+        item, increased = await runtime.async_add_or_increase(summary)
+        if increased:
+            # Saying it is already there, without the number, would sound like
+            # nothing happened.
+            response.async_set_speech(
+                _words(
+                    language,
+                    "increased",
+                    item=summary,
+                    list=runtime.name,
+                    count=_number(item.get("quantity"), language) or "",
+                )
+            )
+        else:
+            response.async_set_speech(
+                _words(language, "added", item=summary, list=runtime.name)
+            )
         return response
 
 

@@ -9,26 +9,70 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import sys
 import types
 from pathlib import Path
 
 for name in (
     "homeassistant",
+    "homeassistant.const",
     "homeassistant.core",
     "homeassistant.helpers",
     "homeassistant.helpers.intent",
     "homeassistant.helpers.config_validation",
+    "homeassistant.helpers.device_registry",
+    "homeassistant.helpers.dispatcher",
+    "homeassistant.helpers.entity_registry",
+    "homeassistant.helpers.event",
     "homeassistant.helpers.storage",
     "homeassistant.config_entries",
     "homeassistant.util",
 ):
     sys.modules.setdefault(name, types.ModuleType(name))
 
+_const = sys.modules["homeassistant.const"]
+_const.EVENT_HOMEASSISTANT_STARTED = "homeassistant_started"
+_const.STATE_HOME = "home"
+_const.STATE_NOT_HOME = "not_home"
+_const.STATE_UNAVAILABLE = "unavailable"
+_const.STATE_UNKNOWN = "unknown"
+
+_event = sys.modules["homeassistant.helpers.event"]
+_event.async_call_later = lambda *a, **k: (lambda: None)
+_event.async_track_state_change_event = lambda *a, **k: (lambda: None)
+_event.async_track_time_interval = lambda *a, **k: (lambda: None)
+
+sys.modules["homeassistant.helpers.dispatcher"].async_dispatcher_send = (
+    lambda *a, **k: None
+)
+sys.modules["homeassistant.helpers.entity_registry"].async_get = lambda hass: None
+sys.modules["homeassistant.helpers.device_registry"].async_get = lambda hass: None
+
 sys.modules["homeassistant.core"].HomeAssistant = object
+sys.modules["homeassistant.core"].Event = object
+sys.modules["homeassistant.core"].callback = lambda func: func
 sys.modules["homeassistant.config_entries"].ConfigEntry = object
-sys.modules["homeassistant.helpers.storage"].Store = object
-sys.modules["homeassistant.util"].dt = types.SimpleNamespace(utcnow=lambda: None)
+
+
+class _Store:
+    """Storage that keeps the data in memory."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        self.data = None
+
+    async def async_load(self):
+        return self.data
+
+    async def async_save(self, data) -> None:
+        self.data = data
+
+
+sys.modules["homeassistant.helpers.storage"].Store = _Store
+sys.modules["homeassistant.util"].dt = types.SimpleNamespace(
+    utcnow=lambda: datetime.datetime(2026, 1, 1)
+)
+sys.modules["homeassistant.util"].slugify = lambda text: str(text).lower()
 
 
 class _Handler:
@@ -57,7 +101,9 @@ _package = types.ModuleType("homebasket_lists")
 _package.__path__ = [str(_COMPONENT)]
 sys.modules["homebasket_lists"] = _package
 
+from homebasket_lists.coordinator import ListRuntime  # noqa: E402
 from homebasket_lists.intent import (  # noqa: E402
+    AddItemIntent,
     CompleteItemIntent,
     ReadShoppingIntent,
     ReadTasksIntent,
@@ -98,9 +144,18 @@ class FakeRuntime:
         return {"zone.lidl": "Lidl", "zone.kaufland": "Kaufland"}.get(entity_id, entity_id)
 
 
+class FakeBus:
+    def __init__(self) -> None:
+        self.events: list = []
+
+    def async_fire(self, event, data) -> None:
+        self.events.append((event, data))
+
+
 class FakeHass:
     def __init__(self, runtimes) -> None:
         self.data = {"homebasket_lists": {str(i): r for i, r in enumerate(runtimes)}}
+        self.bus = FakeBus()
 
 
 class FakeResponse:
@@ -109,6 +164,16 @@ class FakeResponse:
 
     def async_set_speech(self, text) -> None:
         self.speech = text
+
+
+class FakeEntry:
+    """One list's config entry, with nothing configured on it."""
+
+    def __init__(self, title) -> None:
+        self.entry_id = title
+        self.title = title
+        self.data: dict = {}
+        self.options: dict = {}
 
 
 class FakeIntent:
@@ -275,6 +340,31 @@ async def main() -> None:
         "something on no list at all says so",
         await say(complete, both, item="ананас"),
         "ананас го няма в списъците.",
+    )
+
+    # --- adding what is already there --------------------------------------
+    # The real list here, not a stand-in: this is about what adding does.
+    add = AddItemIntent()
+    counting = ListRuntime(FakeHass([]), FakeEntry("Пазар"))
+    await counting.store.async_load()
+    await counting.async_add_item("мляко", quantity=1, unit="бр.")
+    house = FakeHass([counting])
+    check(
+        "adding what is already on the list counts it up",
+        await say(add, house, item="мляко"),
+        "Вече имаше мляко в Пазар, станаха 2.",
+    )
+    check("...and the item really says two", counting.store.items[0]["quantity"], 2)
+    check("...with the unit it already had", counting.store.items[0]["unit"], "бр.")
+    check(
+        "and none of this needs HomeBasket installed",
+        counting.products.available,
+        False,
+    )
+    check(
+        "something new is still added",
+        await say(add, house, item="хляб"),
+        "Добавих хляб в Пазар.",
     )
 
     print("\nall spoken answers are right")

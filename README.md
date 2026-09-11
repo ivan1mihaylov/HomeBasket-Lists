@@ -95,10 +95,15 @@ product only when the name matches one **exactly**. A near match would attach
 the wrong nutrition to the wrong item, and the suggestions are there for
 everything else.
 
-So the current arrangement holds: HomeBasket keeps putting scanned products on
-whichever to-do list it is configured with, and this integration picks them up
-from there and recognises them. HomeBasket is optional; without it, items simply
-carry no product.
+HomeBasket can also put its scans straight onto one of these lists instead of
+onto a to-do entity — the list is chosen in **HomeBasket's** settings. Scanning
+the same product twice then means two of it: the item's quantity goes up by one
+rather than the line being repeated. Adding something the list already has does
+the same wherever it comes from — the card, an action or a voice assistant.
+
+Neither integration needs the other. Without HomeBasket, items simply carry no
+product and there are no suggestions; without these lists, HomeBasket keeps
+using its to-do entity.
 
 ## Shops and reminders
 
@@ -209,7 +214,16 @@ for board in api.lists:
     print(board["name"], len(board["items"]))
 
 to_buy = api.items_for_store("zone.kaufland")
+
+# Put something on a list, or add one more of it if it is already there.
+result = await api.async_add_item("Мляко", quantity=1, unit="бр.")
+if result and result["increased"]:
+    print(result["list"], "now has", result["item"]["quantity"])
 ```
+
+`async_add_item` takes `entry_id` or `name` to say which list; with neither, the
+only list there is. It returns None when that is not clear enough to act on, so
+a caller can fall back to whatever it did before.
 
 Listen for `homebasket_lists_updated` to know when something changed.
 
