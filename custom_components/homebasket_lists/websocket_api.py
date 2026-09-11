@@ -12,6 +12,7 @@ from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN, DURATION_UNITS
 from .coordinator import ListRuntime
+from .images import InvalidImage
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION
 
 _REGISTERED = f"{DOMAIN}_ws_registered"
@@ -67,6 +68,9 @@ def _describe(runtime: ListRuntime) -> dict[str, Any]:
     items = []
     for item in runtime.store.items:
         entry = dict(item)
+        # A photo of the item itself, for the things HomeBasket has no picture
+        # of - a task, a loose vegetable, a part from the hardware shop.
+        entry["has_photo"] = runtime.images.has(item["uid"])
         if product := runtime.products.get(item.get("product_code")):
             entry["product"] = {
                 "code": product.get("code"),
@@ -105,6 +109,9 @@ def async_register(hass: HomeAssistant) -> None:
         websocket_move_item,
         websocket_sync,
         websocket_photo,
+        websocket_item_photo,
+        websocket_set_item_photo,
+        websocket_delete_item_photo,
         websocket_product_details,
         websocket_search_products,
     ):
@@ -178,8 +185,7 @@ async def websocket_remove_item(
 ) -> None:
     """Delete an item, here and in every linked list."""
     runtime = _runtime(hass, msg["entry_id"])
-    removed = await runtime.store.async_remove([msg["uid"]])
-    await runtime.async_changed()
+    removed = await runtime.async_remove_items([msg["uid"]])
     connection.send_result(msg["id"], {"removed": bool(removed)})
 
 
@@ -237,6 +243,71 @@ async def websocket_photo(
         return
     photo = await runtimes[0].products.async_photo(msg["code"])
     connection.send_result(msg["id"], {"photo": photo})
+
+
+@ws.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/item/photo/get",
+        vol.Required("entry_id"): str,
+        vol.Required("uid"): str,
+    }
+)
+@ws.async_response
+async def websocket_item_photo(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Return an item's own photo, as a data URL."""
+    runtime = _runtime(hass, msg["entry_id"])
+    connection.send_result(
+        msg["id"], {"photo": await runtime.images.async_get(msg["uid"])}
+    )
+
+
+@ws.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/item/photo/set",
+        vol.Required("entry_id"): str,
+        vol.Required("uid"): str,
+        vol.Required("photo"): str,
+    }
+)
+@ws.async_response
+async def websocket_set_item_photo(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Store a photo of an item: something HomeBasket has no picture of."""
+    runtime = _runtime(hass, msg["entry_id"])
+    if runtime.store.get(msg["uid"]) is None:
+        connection.send_error(msg["id"], "not_found", "No such item")
+        return
+
+    try:
+        await runtime.images.async_set(msg["uid"], msg["photo"])
+    except InvalidImage as err:
+        connection.send_error(msg["id"], "invalid_image", str(err))
+        return
+
+    runtime.async_notify()
+    connection.send_result(msg["id"], {"saved": True})
+
+
+@ws.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/item/photo/delete",
+        vol.Required("entry_id"): str,
+        vol.Required("uid"): str,
+    }
+)
+@ws.async_response
+async def websocket_delete_item_photo(
+    hass: HomeAssistant, connection: ws.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Remove an item's photo."""
+    runtime = _runtime(hass, msg["entry_id"])
+    removed = await runtime.images.async_delete(msg["uid"])
+    if removed:
+        runtime.async_notify()
+    connection.send_result(msg["id"], {"removed": removed})
 
 
 @ws.websocket_command(

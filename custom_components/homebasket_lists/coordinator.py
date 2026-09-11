@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .arrivals import ArrivalWatcher
+from .images import ImageStore
 from .const import CONF_STORES, EVENT_UPDATED, SIGNAL_UPDATED
 from .options import allowed_types, apply_type, forced_type
 from .products import ProductLink
@@ -24,6 +25,7 @@ class ListRuntime:
         self.hass = hass
         self.entry = entry
         self.store = ListStore(hass, entry.entry_id)
+        self.images = ImageStore(hass, entry.entry_id)
         self.products = ProductLink(hass)
         self.sync = ListSync(hass, entry, self.store, self.products)
         self.arrivals = ArrivalWatcher(hass, self)
@@ -63,6 +65,7 @@ class ListRuntime:
     async def async_setup(self) -> None:
         """Load the list and start watching the linked ones."""
         await self.store.async_load()
+        await self.images.async_load()
         await self.sync.async_setup(self.async_notify)
         await self.arrivals.async_setup()
         await self.async_enforce_types()
@@ -70,6 +73,7 @@ class ListRuntime:
     async def async_start(self) -> None:
         """Do the first sync, once the entity exists."""
         await self.sync.async_sync()
+        await self.async_forget_stale_photos()
         if await self.sync.async_link_products():
             self.async_notify()
 
@@ -135,6 +139,21 @@ class ListRuntime:
         updated = await self.store.async_update(item["uid"], **changes)
         await self.async_changed()
         return updated or item
+
+    async def async_remove_items(self, uids: list[str]) -> list[dict[str, Any]]:
+        """Delete items, and the photos that belonged to them."""
+        removed = await self.store.async_remove(uids)
+        for item in removed:
+            await self.images.async_delete(item["uid"])
+        if removed:
+            await self.async_changed()
+        return removed
+
+    async def async_forget_stale_photos(self) -> int:
+        """Drop photos of items that are no longer on the list."""
+        return await self.images.async_keep_only(
+            [item["uid"] for item in self.store.items]
+        )
 
     async def async_update_item(self, uid: str, **fields: Any) -> dict[str, Any] | None:
         """Change an item, keeping the kind the list requires."""

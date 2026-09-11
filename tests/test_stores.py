@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -103,6 +104,10 @@ class FakeHass:
     def __init__(self, names: dict[str, str | None]) -> None:
         self.states = FakeStates(names)
         self.data: dict = {}
+        # Photos live under the config folder; a temporary one will do.
+        self.config = types.SimpleNamespace(
+            path=lambda *parts: str(Path(tempfile.mkdtemp()).joinpath(*parts))
+        )
 
 
 class FakeEntry:

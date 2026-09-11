@@ -105,6 +105,24 @@ Neither integration needs the other. Without HomeBasket, items simply carry no
 product and there are no suggestions; without these lists, HomeBasket keeps
 using its to-do entity.
 
+## Photos
+
+An item that HomeBasket has no picture for — a task, a loose vegetable, a part
+from the hardware shop — can carry a photo of its own. Open the item and use the
+square button to take one with the phone's camera or pick one from the gallery;
+it shows on the item's row from then on. Nothing is written until **Save**, and
+the × on the picture removes it.
+
+Photos are shrunk before they are sent, kept in Home Assistant's own storage
+(`.storage/homebasket_lists_images/<list>/`) and read back over the
+authenticated WebSocket API, so they are never served from a public path the
+way files in `www/` are. Deleting an item deletes its photo, and so does
+deleting the list.
+
+Items linked to a HomeBasket product show that product's picture instead, and
+have no photo field of their own — the picture belongs to the product there,
+where every list can use it.
+
 ## Shops and reminders
 
 A shop is a zone. Assign one to an item and it belongs to that shop; leave it
@@ -252,6 +270,7 @@ python3 tests/test_stores.py    # guessing a shop from Open Food Facts
 python3 tests/test_arrivals.py  # shop reminders and fixed item kinds
 python3 tests/test_sentences.py # the Assist phrases, parsed with hassil
 python3 tests/test_voice.py     # what the assistant says back
+python3 tests/test_photos.py    # the photos an item can carry
 ```
 
 The first stands a fake to-do list up and walks an item through adding, ticking

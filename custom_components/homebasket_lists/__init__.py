@@ -46,6 +46,7 @@ from .const import (
 )
 from .coordinator import ListRuntime
 from .frontend import async_register_frontend
+from .images import ImageStore
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION, normalize_summary
 
 _LOGGER = logging.getLogger(__name__)
@@ -160,6 +161,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Take a deleted list's photos with it."""
+    await ImageStore(hass, entry.entry_id).async_drop_all()
+
+
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload when the options change."""
     await hass.config_entries.async_reload(entry.entry_id)
@@ -217,8 +223,7 @@ def _async_register_services(hass: HomeAssistant) -> None:
 
     async def async_remove_item(call: ServiceCall) -> ServiceResponse:
         runtime = _one(hass, call.data.get(ATTR_LIST))
-        removed = await runtime.store.async_remove([call.data[ATTR_UID]])
-        await runtime.async_changed()
+        removed = await runtime.async_remove_items([call.data[ATTR_UID]])
         return {"removed": bool(removed)}
 
     async def async_get_items(call: ServiceCall) -> ServiceResponse:

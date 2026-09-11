@@ -72,6 +72,10 @@ const TRANSLATIONS = {
     loading: 'Loading…',
     noDetails: 'HomeBasket has nothing more on this product.',
     close: 'Close',
+    photo: 'Photo',
+    takePhoto: 'Take or upload a photo',
+    removePhoto: 'Remove the photo',
+    photoTooBig: 'That image could not be read.',
     openOnOff: 'Open Food Facts page',
     sectionNutrition: 'Nutrition, per 100 g',
     sectionIngredients: 'Ingredients',
@@ -157,6 +161,10 @@ const TRANSLATIONS = {
     loading: 'Зареждане…',
     noDetails: 'HomeBasket няма повече информация за този продукт.',
     close: 'Затвори',
+    photo: 'Снимка',
+    takePhoto: 'Снимай или качи снимка',
+    removePhoto: 'Премахни снимката',
+    photoTooBig: 'Изображението не можа да се прочете.',
     openOnOff: 'Страница в Open Food Facts',
     sectionNutrition: 'Хранителни стойности, на 100 г',
     sectionIngredients: 'Съставки',
@@ -476,6 +484,47 @@ const STYLES = `
     padding-inline-end: 38px;
   }
   .dialog textarea { min-height: 74px; resize: vertical; }
+
+  /* A photo of the item itself, for what HomeBasket has no picture of. */
+  .photo-box { position: relative; width: 124px; height: 124px; margin-bottom: 16px; }
+  .photo-add {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    border: 1px dashed var(--hb-line);
+    border-radius: 18px;
+    background: var(--hb-sunken);
+    color: var(--hb-muted);
+    cursor: pointer;
+  }
+  .photo-add:hover { color: var(--hb-accent); border-color: var(--hb-accent); }
+  .photo-add svg { width: 34px; height: 34px; fill: currentColor; }
+  .photo-preview {
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--hb-sunken);
+  }
+  .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-remove {
+    position: absolute;
+    top: -9px;
+    right: -9px;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--hb-danger);
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+  }
+  .photo-remove svg { width: 17px; height: 17px; fill: currentColor; }
+  .dialog input[type='file'] { display: none; }
   .dialog .actions { display: flex; justify-content: flex-end; gap: 8px; padding: 6px 18px 18px; }
   .dialog .hint { font-size: 0.8125rem; color: var(--hb-muted); margin: 0 0 12px; }
   .stepper { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
@@ -686,6 +735,33 @@ const STYLES = `
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
+/**
+ * Read a picked file and return it as a downscaled JPEG data URL.
+ *
+ * Phone cameras produce multi-megabyte images; the list only ever shows a
+ * thumbnail, so shrinking before upload keeps the stored photos small.
+ */
+function readPhoto(file, maxSize = 320) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('unreadable'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('unreadable'));
+      image.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 const ICONS = {
   check: 'M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
   plus: 'M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z',
@@ -693,6 +769,9 @@ const ICONS = {
   image:
     'M21 3H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H3l4.5-6 3 4L14 13l7 6z',
   task: 'M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-7 0a1 1 0 1 1 0 2 1 1 0 0 1 0-2zm-2 14-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z',
+  camera:
+    'M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z',
+  close: 'M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
   trash:
     'M9 3v1H4v2h1v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6h1V4h-5V3H9zm2 5h2v10h-2V8zm-4 0h2v10H7V8zm8 0h2v10h-2V8z',
 };
@@ -1187,6 +1266,31 @@ class HomeBasketListsCard extends HTMLElement {
     await this._refresh();
   }
 
+  /** Fetch the photo of an item itself and hand it to an <img>. */
+  _fillItemPhoto(item, image) {
+    const key = `item:${item.uid}`;
+    if (this._photos.has(key)) {
+      image.src = this._photos.get(key);
+      image.hidden = false;
+      return;
+    }
+    if (this._loadingPhotos.has(key)) return;
+
+    this._loadingPhotos.add(key);
+    this._call('homebasket_lists/item/photo/get', {
+      entry_id: this._board.entry_id,
+      uid: item.uid,
+    })
+      .then(({ photo }) => {
+        if (!photo) return;
+        this._photos.set(key, photo);
+        image.src = photo;
+        image.hidden = false;
+      })
+      .catch(() => {})
+      .finally(() => this._loadingPhotos.delete(key));
+  }
+
   /** Fetch a product photo held by HomeBasket and hand it to an <img>. */
   _fillPhoto(code, image) {
     if (this._photos.has(code)) {
@@ -1256,6 +1360,10 @@ class HomeBasketListsCard extends HTMLElement {
       let settled = false;
       const fields = {};
       let type = item.type || '';
+      // The photo is not written until Save, like every other field here.
+      let photoData = null;
+      let photoTouched = false;
+      let drawPhoto = () => {};
       const finish = (value, close) => {
         if (settled) return;
         settled = true;
@@ -1298,6 +1406,86 @@ class HomeBasketListsCard extends HTMLElement {
           content.appendChild(el('label', { text: t.name }));
           fields.summary = el('input', { type: 'text', value: item.summary || '' });
           content.appendChild(fields.summary);
+
+          // A product HomeBasket knows brings its own picture; everything
+          // else - a task, a loose vegetable, a part from the hardware shop -
+          // can have one of its own.
+          if (!item.product) {
+            const file = el('input', {
+              type: 'file',
+              accept: 'image/*',
+              capture: 'environment',
+            });
+            file.addEventListener('change', async () => {
+              const [picked] = file.files || [];
+              if (!picked) return;
+              try {
+                photoData = await readPhoto(picked);
+                photoTouched = true;
+                drawPhoto();
+              } catch {
+                toast(this.shadowRoot, t.photoTooBig, true);
+              }
+              file.value = '';
+            });
+
+            // Either the square button or the picture in its place, never both.
+            const box = el('div', { class: 'photo-box' });
+            drawPhoto = () => {
+              if (!photoData) {
+                box.replaceChildren(
+                  el(
+                    'button',
+                    {
+                      class: 'photo-add',
+                      title: t.takePhoto,
+                      'aria-label': t.takePhoto,
+                      on: { click: () => file.click() },
+                    },
+                    icon('camera'),
+                  ),
+                );
+                return;
+              }
+              box.replaceChildren(
+                el('div', { class: 'photo-preview' }, el('img', { src: photoData, alt: '' })),
+                el(
+                  'button',
+                  {
+                    class: 'photo-remove',
+                    title: t.removePhoto,
+                    'aria-label': t.removePhoto,
+                    on: {
+                      click: () => {
+                        photoData = null;
+                        photoTouched = true;
+                        drawPhoto();
+                      },
+                    },
+                  },
+                  icon('close'),
+                ),
+              );
+            };
+            drawPhoto();
+
+            // A stored photo arrives afterwards; redraw once it is here.
+            if (item.has_photo) {
+              this._call('homebasket_lists/item/photo/get', {
+                entry_id: board.entry_id,
+                uid: item.uid,
+              })
+                .then(({ photo }) => {
+                  if (!photo || photoTouched) return;
+                  this._photos.set(`item:${item.uid}`, photo);
+                  photoData = photo;
+                  drawPhoto();
+                })
+                .catch(() => {});
+            }
+
+            content.append(el('label', { text: t.photo }), box, file);
+          }
 
           const fixed = this._fixedType();
           if (fixed === null) {
@@ -1443,6 +1631,8 @@ class HomeBasketListsCard extends HTMLElement {
             onClick: (close) =>
               finish(
                 {
+                  photoData,
+                  photoTouched,
                   summary: fields.summary.value.trim(),
                   item_type: fields.type.value || null,
                   note: fields.note.value.trim() || null,
@@ -1477,12 +1667,33 @@ class HomeBasketListsCard extends HTMLElement {
     }
     if (!saved.summary) return;
 
+    // The photo travels on its own, so it never reaches the item update.
+    const { photoData, photoTouched, ...changes } = saved;
+
     try {
       await this._call('homebasket_lists/item/update', {
         entry_id: board.entry_id,
         uid: item.uid,
-        ...saved,
+        ...changes,
       });
+
+      if (photoTouched) {
+        const key = `item:${item.uid}`;
+        if (photoData) {
+          await this._call('homebasket_lists/item/photo/set', {
+            entry_id: board.entry_id,
+            uid: item.uid,
+            photo: photoData,
+          });
+          this._photos.set(key, photoData);
+        } else {
+          await this._call('homebasket_lists/item/photo/delete', {
+            entry_id: board.entry_id,
+            uid: item.uid,
+          });
+          this._photos.delete(key);
+        }
+      }
     } catch (err) {
       toast(this.shadowRoot, err.message || t.noAnswer, true);
     }
@@ -1840,7 +2051,8 @@ class HomeBasketListsCard extends HTMLElement {
     const thumb = el('div', { class: 'thumb' });
     const image = el('img', { alt: '', loading: 'lazy', hidden: true });
     thumb.append(image, icon(isTask(item.type) ? 'task' : 'image'));
-    if (item.product?.has_photo) this._fillPhoto(item.product.code, image);
+    if (item.has_photo) this._fillItemPhoto(item, image);
+    else if (item.product?.has_photo) this._fillPhoto(item.product.code, image);
     else if (item.product?.image) {
       image.src = item.product.image;
       image.hidden = false;

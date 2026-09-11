@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import sys
+import tempfile
 import types
 from pathlib import Path
 
@@ -156,6 +157,12 @@ class FakeHass:
     def __init__(self, runtimes) -> None:
         self.data = {"homebasket_lists": {str(i): r for i, r in enumerate(runtimes)}}
         self.bus = FakeBus()
+        self.config = types.SimpleNamespace(
+            path=lambda *parts: str(Path(tempfile.mkdtemp()).joinpath(*parts))
+        )
+
+    async def async_add_executor_job(self, func, *args):
+        return func(*args)
 
 
 class FakeResponse:
