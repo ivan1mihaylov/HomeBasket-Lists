@@ -30,6 +30,13 @@ CARD_FILE = "homebasket-lists-card.js"
 CARD_URL = f"/{DOMAIN}/{CARD_FILE}"
 _REGISTERED = f"{DOMAIN}_frontend_registered"
 
+# Safari - and therefore every iPhone - has no barcode reader of its own, so
+# one is shipped here for the card to fall back to. It is served from this
+# installation rather than a CDN: the camera is pointed at what is in your
+# kitchen, and nothing about that should have to leave the house.
+ZXING_FILE = "zxing.min.js"
+ZXING_URL = f"/{DOMAIN}/{ZXING_FILE}"
+
 
 async def async_register_frontend(hass: HomeAssistant) -> None:
     """Publish the card and make the dashboards load it."""
@@ -48,9 +55,11 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
     hass.data[_REGISTERED] = True
     versioned = f"{CARD_URL}?v={VERSION}"
 
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(path), False)]
-    )
+    served = [StaticPathConfig(CARD_URL, str(path), False)]
+    reader = path.parent / ZXING_FILE
+    if reader.is_file():
+        served.append(StaticPathConfig(ZXING_URL, str(reader), True))
+    await hass.http.async_register_static_paths(served)
     add_extra_js_url(hass, versioned)
     as_resource = await _async_add_resource(hass, versioned)
 

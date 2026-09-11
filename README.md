@@ -159,10 +159,11 @@ The product itself is remembered by HomeBasket, exactly as if it had been
 scanned there: it joins the products it knows, and the scan shows in the
 HomeBasket card's recent scans too.
 
-The camera needs a browser with a built-in barcode detector (Chrome, Edge and
-the Android Companion app) over HTTPS. Safari and iOS have none, so there the
-card takes a `zxing_url` pointing at a ZXing build you host yourself, the same
-as the HomeBasket card.
+The camera needs HTTPS. Chrome, Edge and the Android Companion app read
+barcodes themselves; Safari and iOS cannot, so this integration ships a reader
+and serves it from your own installation — nothing is fetched from a CDN, and
+there is nothing to set up. `zxing_url` points the card at a build of your own
+instead.
 
 ### Something that is already on the list
 
@@ -336,7 +337,7 @@ type: custom:homebasket-lists-card
 | `list` | all | One list, picked from those that exist. Empty shows a tab per list. |
 | `language` | Home Assistant's | `bg` or `en`. Leave empty to follow Home Assistant. |
 | `group_by_store` | `true` | Group open items under their shop. |
-| `zxing_url` | `null` | Only for browsers without a built-in barcode detector — see scanning, above. |
+| `zxing_url` | `null` | A barcode reader of your own. One is shipped with the integration — see scanning, above. |
 | `show_completed` | `true` | Show what is already ticked off. |
 
 ## Development
