@@ -1,13 +1,21 @@
-Fixes the Assist phrases this integration writes, which were in the wrong shape
-and made the conversation agent fail to load the whole language:
+The assistant can be asked what there is to buy and what there is to do.
 
-    AttributeError: 'list' object has no attribute 'get'
+- *какво имам да купя* — the products still open, grouped by the shop to buy
+  them in, each with its quantity.
+- *какво имам да правя* — the tasks still open, each with how long it takes.
+- *какво имам да правя по Ремонт* — the same, for one list.
 
-That took every other custom sentence down with it, not only ours, so voice
-commands stopped working in general. Each intent is now a mapping with a `data`
-block, and `{item}` is declared as a wildcard list, which it always should have
-been.
+Without a list named, every list answers at once and each section says which
+list it is. Naming a list answers for that one, and part of its name is enough.
 
-The file is rewritten on startup, so updating and restarting is enough. It
-lives in `config/custom_sentences/<language>/homebasket_lists.yaml` if you want
-to look.
+Every phrase also takes the wordings a person actually uses rather than the one
+that happened to be written down. *какво трябва да купя*, *какво да купя*,
+*какво има за пазаруване* and *какво ми трябва от магазина* all ask the same
+thing; adding takes добави, сложи, запиши and напиши; ticking off takes
+отметни, купих, взех, свърших, направих, махни and *отбележи като
+приключено/свършено*. English has the same spread.
+
+Ticking off no longer needs the list named: *купих мляко* finds whichever list
+still has it open.
+
+**Restart Home Assistant after updating** — the phrases are read at startup.
