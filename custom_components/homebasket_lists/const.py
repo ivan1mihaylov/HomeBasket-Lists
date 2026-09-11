@@ -56,6 +56,7 @@ DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 # one here. Each can be tied to the zones where it is worth a reminder - a
 # butcher's is not where you are told about shampoo.
 DEPARTMENT_GROCERIES: Final = "groceries"
+DEPARTMENT_BAKERY: Final = "bakery"
 DEPARTMENT_PRODUCE: Final = "produce"
 DEPARTMENT_BUTCHER: Final = "butcher"
 DEPARTMENT_COSMETICS: Final = "cosmetics"
@@ -63,6 +64,7 @@ DEPARTMENT_PETS: Final = "pets"
 DEPARTMENT_BUILDING: Final = "building"
 DEPARTMENTS: Final = [
     DEPARTMENT_GROCERIES,
+    DEPARTMENT_BAKERY,
     DEPARTMENT_PRODUCE,
     DEPARTMENT_BUTCHER,
     DEPARTMENT_COSMETICS,

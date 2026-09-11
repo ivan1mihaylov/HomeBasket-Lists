@@ -167,7 +167,7 @@ instead.
 
 ### Which shop each kind of thing is worth a reminder in
 
-Items belong to a category of shop — groceries, greengrocer, butcher,
+Items belong to a category of shop — groceries, bakery, greengrocer, butcher,
 cosmetics, pet shop, building supplies. A product brings its own from
 HomeBasket, which takes it from the database that knew the barcode; anything
 typed by hand can be given one in its sheet.

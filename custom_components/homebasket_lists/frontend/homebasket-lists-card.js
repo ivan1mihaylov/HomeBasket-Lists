@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.12.0';
+const VERSION = '0.12.1';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -104,6 +104,7 @@ const TRANSLATIONS = {
     noDepartment: 'Not set',
     departments: {
       groceries: 'Groceries',
+      bakery: 'Bakery',
       produce: 'Greengrocer',
       butcher: 'Butcher',
       cosmetics: 'Cosmetics',
@@ -230,6 +231,7 @@ const TRANSLATIONS = {
     noDepartment: 'Без',
     departments: {
       groceries: 'Хранителни стоки',
+      bakery: 'Закуски',
       produce: 'Плод и зеленчук',
       butcher: 'Месарница',
       cosmetics: 'Парфюмерия и козметика',
@@ -1068,7 +1070,7 @@ const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'it
 
 // The kinds of shop something can be bought in. The integration says which it
 // knows; this is only what to show when it is too old to say.
-const DEPARTMENTS = ['groceries', 'produce', 'butcher', 'cosmetics', 'pets', 'building'];
+const DEPARTMENTS = ['groceries', 'bakery', 'produce', 'butcher', 'cosmetics', 'pets', 'building'];
 
 // Where this integration publishes the reader it ships. HomeBasket serves the
 // same file, and either will do.
