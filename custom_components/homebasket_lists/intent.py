@@ -198,7 +198,12 @@ def _by_shop(runtime: Any, items: list[dict[str, Any]], language: str) -> str:
         names = ", ".join(_amount(item) for item in group)
         if store:
             parts.append(
-                _words(language, "from_shop", shop=runtime.zone_name(store), items=names)
+                _words(
+                    language,
+                    "from_shop",
+                    shop=runtime.zone_name(store),
+                    items=names,
+                )
             )
         else:
             parts.append(_words(language, "no_shop", items=names))
@@ -363,7 +368,9 @@ class _ReadKindIntent(_ListIntent):
     nothing: str
     nothing_in: str
 
-    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+    def _describe(
+        self, runtime: Any, items: list[dict[str, Any]], language: str
+    ) -> str:
         raise NotImplementedError
 
     async def async_handle(self, intent_obj: intent.Intent) -> intent.IntentResponse:
@@ -425,7 +432,9 @@ class ReadShoppingIntent(_ReadKindIntent):
     nothing = "nothing_to_buy"
     nothing_in = "nothing_to_buy_in"
 
-    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+    def _describe(
+        self, runtime: Any, items: list[dict[str, Any]], language: str
+    ) -> str:
         return _by_shop(runtime, items, language)
 
 
@@ -439,7 +448,9 @@ class ReadTasksIntent(_ReadKindIntent):
     nothing = "nothing_to_do"
     nothing_in = "nothing_to_do_in"
 
-    def _describe(self, runtime: Any, items: list[dict[str, Any]], language: str) -> str:
+    def _describe(
+        self, runtime: Any, items: list[dict[str, Any]], language: str
+    ) -> str:
         return ", ".join(_task(item, language) for item in items)
 
 
