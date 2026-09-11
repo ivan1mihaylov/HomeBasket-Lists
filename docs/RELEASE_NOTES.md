@@ -1,16 +1,11 @@
-**An item that arrives from a to-do list is still a product.**
+**Something to buy is one of it, wherever it came from.**
 
-When HomeBasket is set to put scans on a built-in to-do list, and that list is
-linked to one of these, the item came across as nothing but a name. It was
-matched to the HomeBasket product — the picture and the nutrition were there —
-but it had no kind, so it showed as **Без / None** whatever the databases had
-said about it.
+Adding a product from the card put "1 бр." on the line; every other way in left
+it blank — a scan from HomeBasket, a line adopted from a linked to-do list, an
+action, a voice assistant. The list settles that itself now, in the language
+Home Assistant speaks, so an item lands as one of it however it arrived.
 
-Every way onto a list now settles that the same way: the barcode says which
-database knew the product, and that is the kind the item gets. Open Food Facts
-means groceries, Open Pet Food Facts what the cat eats, Open Beauty Facts a
-cosmetic, Open Products Facts a thing — the last two arriving as things, the
-first two as shopping.
-
-Items already sitting on a list without a kind are given one on the next pass,
-so a restart is enough to settle what is already there.
+Only what is missing is filled in. Two kilograms stays two kilograms, a unit on
+its own means one of that, and a task still has nothing to count. An item that
+is already on a list without a quantity is given one the next time its product
+is matched.

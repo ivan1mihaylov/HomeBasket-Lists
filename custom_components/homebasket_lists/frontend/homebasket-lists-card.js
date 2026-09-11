@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.11.2';
+const VERSION = '0.11.3';
 
 /* ------------------------------------------------------------------ *
  * Translations

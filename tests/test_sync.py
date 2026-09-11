@@ -306,6 +306,20 @@ async def main() -> None:
             raise AssertionError(f"{label}: got {actual!r}, expected {expected!r}")
         print(f"  ok  {label}")
 
+    def amount_of(summary):
+        item = store.find_by_summary(summary)
+        return (item.get("quantity"), item.get("unit"))
+
+    for label, summary, expected in (
+        ("a grocery from a to-do list is one of it", "Натурална минерална вода Велинград 1,5 L", (1, "pcs")),
+        ("so is a thing", "Шампоан", (1, "pcs")),
+        ("a line that is no product is left alone", "Да платя тока", (None, None)),
+    ):
+        actual = amount_of(summary)
+        if actual != expected:
+            raise AssertionError(f"{label}: got {actual!r}, expected {expected!r}")
+        print(f"  ok  {label}")
+
     # An item that has been sitting there without a kind since before any of
     # this learns one on the next pass.
     plain = await store.async_add(summary="Шампоан 2")
@@ -314,6 +328,17 @@ async def main() -> None:
     if store.find_by_summary("Шампоан 2").get("type") != "product":
         raise AssertionError("an item already linked to a product kept no kind")
     print("  ok  one already on the list learns what it is on the next pass")
+    if amount_of("Шампоан 2") != (1, "pcs"):
+        raise AssertionError(f"...and how many: {amount_of('Шампоан 2')}")
+    print("  ok  ...and that there is one of it")
+
+    # One that already says how much stays as it is.
+    much = await store.async_add(summary="Шампоан 3", quantity=2, unit="l")
+    await store.async_update(much["uid"], product_code="8006540889824", type=None)
+    await linked.async_link_products()
+    if amount_of("Шампоан 3") != (2, "l"):
+        raise AssertionError(f"a stated quantity was overwritten: {amount_of('Шампоан 3')}")
+    print("  ok  ...while one that says how much keeps it")
     if changed != 1:
         raise AssertionError(f"expected one change, got {changed}")
     print("  ok  ...and nothing else is touched")

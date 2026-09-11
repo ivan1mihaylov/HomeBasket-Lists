@@ -26,6 +26,7 @@ from .options import (
     allowed_types,
     apply_type,
     buyable_type,
+    fill_amount,
     coerce_type,
     duplicates,
     forced_type,
@@ -155,6 +156,7 @@ class ListRuntime:
                 fields["store"] = guess
 
         fields = apply_type(self.entry, fields)
+        fields = fill_amount(fields, fields.get("type"), self.hass)
         item = await self.store.async_add(summary=summary, **fields)
         await self.async_changed()
         return item, ADDED

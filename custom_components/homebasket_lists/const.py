@@ -50,6 +50,11 @@ PRODUCT_KINDS: Final = {
     "product": TYPE_PRODUCT,
 }
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
+
+# Something to buy is one of it unless someone says otherwise, counted in
+# pieces in the language the house speaks.
+DEFAULT_QUANTITY: Final = 1
+DEFAULT_UNITS: Final = {"bg": "бр.", "en": "pcs"}
 DEFAULT_LINK_PRODUCTS: Final = True
 
 # What happens when something already on the list is added again. Counting it

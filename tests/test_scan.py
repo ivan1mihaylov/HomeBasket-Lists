@@ -296,8 +296,9 @@ async def main() -> None:
 
     # An item put on the list by HomeBasket itself, which said nothing about
     # what the product is: the list asks rather than leaves it without a kind.
-    item = await runtime.async_add_item("Velingrad water 1.5 l", product_code="3800230410016")
+    item = await runtime.async_add_item("Velingrad water 0.5 l", product_code="3800230410016")
     check("a barcode Open Food Facts knew lands as a grocery", item["type"], "food")
+    check("...as one of it", (item["quantity"], item["unit"]), (1, "pcs"))
     check("...without asking the databases again", databases.asked, [])
 
     item = await runtime.async_add_item("Zewa towels", product_code="4008496932504")
@@ -314,6 +315,13 @@ async def main() -> None:
     # Something the databases have never heard of keeps the kind it was given.
     item = await runtime.async_add_item("Call the plumber", type="task")
     check("a task is still a task", item["type"], "task")
+    check("...with nothing to count", (item["quantity"], item["unit"]), (None, None))
+
+    item = await runtime.async_add_item("Rice", type="food", quantity=2, unit="kg")
+    check("a stated quantity is left alone", (item["quantity"], item["unit"]), (2, "kg"))
+
+    item = await runtime.async_add_item("Potatoes", type="food", unit="kg")
+    check("...and a unit on its own means one of that", (item["quantity"], item["unit"]), (1, "kg"))
 
     # A line that went on the list before anyone knew what it was.
     plain = await runtime.store.async_add(summary="Velingrad water 6 l")

@@ -16,6 +16,8 @@ from .const import (
     CONF_ITEM_TYPES,
     DEFAULT_DUPLICATES,
     DEFAULT_ITEM_TYPES,
+    DEFAULT_QUANTITY,
+    DEFAULT_UNITS,
     DUPLICATES,
     ITEM_TYPES,
     TYPE_FOOD,
@@ -98,6 +100,34 @@ def buyable_type(entry: ConfigEntry) -> str | None:
         (kind for kind in allowed_types(entry) if kind in (TYPE_FOOD, TYPE_PRODUCT)),
         None,
     )
+
+
+def default_amount(kind: str | None, hass: Any = None) -> dict[str, Any]:
+    """Return the quantity something lands with when nobody gave one.
+
+    Something to buy is one of it, counted in pieces - "1 бр.", "1 pcs" - in
+    the language the house speaks. A task has nothing to count, and neither
+    has a plain line.
+    """
+    if kind not in (TYPE_FOOD, TYPE_PRODUCT):
+        return {}
+
+    language = str(getattr(getattr(hass, "config", None), "language", "") or "en")
+    unit = DEFAULT_UNITS.get(language.split("-")[0].lower(), DEFAULT_UNITS["en"])
+    return {"quantity": DEFAULT_QUANTITY, "unit": unit}
+
+
+def fill_amount(fields: dict[str, Any], kind: str | None, hass: Any = None) -> dict[str, Any]:
+    """Return the fields with a quantity and unit where they were left empty.
+
+    Only what is missing is filled, so "2 kg" stays two kilograms and "kg"
+    alone becomes one kilogram rather than one piece.
+    """
+    filled = dict(fields)
+    for key, value in default_amount(kind, hass).items():
+        if filled.get(key) in (None, ""):
+            filled[key] = value
+    return filled
 
 
 def duplicates(entry: ConfigEntry) -> str:

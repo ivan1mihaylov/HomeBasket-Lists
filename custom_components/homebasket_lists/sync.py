@@ -29,7 +29,7 @@ from homeassistant.helpers.event import (
 )
 
 from .const import CONF_LINK_PRODUCTS, CONF_LINKED_LISTS, DEFAULT_LINK_PRODUCTS
-from .options import apply_type, buyable_type
+from .options import apply_type, buyable_type, fill_amount
 from .products import ProductLink
 from .store import (
     STATUS_COMPLETED,
@@ -200,16 +200,17 @@ class ListSync:
                 # product HomeBasket knows brings its kind with it, and a list
                 # fixed to one kind gives that to everything it adopts.
                 code = self._match_product(summary)
+                adopted = apply_type(
+                    self.entry,
+                    {
+                        "summary": summary,
+                        "status": item["status"],
+                        "product_code": code,
+                        "type": await self._async_kind(code),
+                    },
+                )
                 await self.store.async_add(
-                    **apply_type(
-                        self.entry,
-                        {
-                            "summary": summary,
-                            "status": item["status"],
-                            "product_code": code,
-                            "type": await self._async_kind(code),
-                        },
-                    )
+                    **fill_amount(adopted, adopted.get("type"), self.hass)
                 )
                 changed = True
                 continue
@@ -317,6 +318,12 @@ class ListSync:
             if not item.get("type") and (kind := await self._async_kind(code)):
                 changes["type"] = kind
             if changes:
-                await self.store.async_update(item["uid"], **apply_type(self.entry, changes))
+                changes = apply_type(self.entry, changes)
+                # Something that turns out to be shopping is one of it - but
+                # only where the item says nothing, so "2 kg" is left alone.
+                have = {"quantity": item.get("quantity"), "unit": item.get("unit")}
+                filled = fill_amount(have, changes.get("type") or item.get("type"), self.hass)
+                changes.update({k: v for k, v in filled.items() if have[k] in (None, "")})
+                await self.store.async_update(item["uid"], **changes)
                 changed += 1
         return changed
