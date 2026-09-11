@@ -123,6 +123,22 @@ class FakeHomeBasket:
                 "kind": "product",
                 "status": "looked_up",
             }
+        if code == "8006540889824":
+            return {
+                "code": code,
+                "product_code": code,
+                "name": "Head & Shoulders shampoo",
+                "kind": "beauty",
+                "status": "looked_up",
+            }
+        if code == "7613034091406":
+            return {
+                "code": code,
+                "product_code": code,
+                "name": "Felix cat food",
+                "kind": "petfood",
+                "status": "looked_up",
+            }
         return {"code": code, "product_code": code, "name": None, "status": "unknown"}
 
     def get(self, code):
@@ -241,6 +257,17 @@ async def main() -> None:
     )
     hass.data["homebasket_api"] = homebasket
 
+    # --- the other two databases -------------------------------------------
+    # A shopping list splits things more coarsely than the databases do: what
+    # the cat eats is still shopping, a shampoo is still a thing.
+    answer = await scan(hass, "8006540889824", quantity=1, unit="pcs")
+    check("Open Beauty Facts means a thing", answer.result["item"]["type"], "product")
+    check("...by its own name", answer.result["item"]["summary"], "Head & Shoulders shampoo")
+
+    answer = await scan(hass, "7613034091406", quantity=1, unit="pcs")
+    check("Open Pet Food Facts means shopping", answer.result["item"]["type"], "food")
+    check("...by its own name", answer.result["item"]["summary"], "Felix cat food")
+
     # --- the kind comes from the database that knew the barcode ------------
     class Databases(FakeHomeBasket):
         """HomeBasket with two products, each known by a different database."""
@@ -248,6 +275,8 @@ async def main() -> None:
         known = {
             "3800230410016": {"code": "3800230410016", "name": "Velingrad water 1.5 l", "kind": "food"},
             "4008496932504": {"code": "4008496932504", "name": "Zewa towels", "kind": None},
+            "8006540889824": {"code": "8006540889824", "name": "Head & Shoulders shampoo", "kind": "beauty"},
+            "7613034091406": {"code": "7613034091406", "name": "Felix cat food", "kind": "petfood"},
         }
         details = {"4008496932504": {"label": "Zewa towels", "kind": "product"}}
 
@@ -274,6 +303,13 @@ async def main() -> None:
     item = await runtime.async_add_item("Zewa towels", product_code="4008496932504")
     check("one Open Products Facts knew lands as a thing", item["type"], "product")
     check("...after one look at the record", databases.asked, ["4008496932504"])
+
+    item = await runtime.async_add_item("Shampoo for Ivan", product_code="8006540889824")
+    check("one Open Beauty Facts knew lands as a thing too", item["type"], "product")
+
+    item = await runtime.async_add_item("Food for the cat", product_code="7613034091406")
+    check("one Open Pet Food Facts knew lands as shopping", item["type"], "food")
+    check("...neither of them asking again", databases.asked, ["4008496932504"])
 
     # Something the databases have never heard of keeps the kind it was given.
     item = await runtime.async_add_item("Call the plumber", type="task")
