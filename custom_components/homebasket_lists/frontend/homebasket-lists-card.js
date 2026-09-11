@@ -399,7 +399,7 @@ const STYLES = `
     place-items: center;
     overflow: hidden;
   }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
   .thumb svg { width: 20px; height: 20px; fill: var(--hb-muted); }
 
   .who { flex: 1 1 auto; min-width: 0; cursor: pointer; }
@@ -712,6 +712,25 @@ const STYLES = `
     font-size: 0.75rem;
   }
   .details .source a { color: var(--hb-accent); }
+
+  /* A picture, as big as the screen allows. One tap put it there, another
+     takes it away. */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.92);
+    cursor: zoom-out;
+  }
+  .lightbox img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    object-fit: contain;
+  }
 
   .toast {
     position: fixed;
@@ -2104,6 +2123,27 @@ class HomeBasketListsCard extends HTMLElement {
     );
   }
 
+  /** Show one picture over the whole screen until it is tapped away. */
+  _showPhoto(src, alt = '') {
+    this.shadowRoot.querySelector('.lightbox')?.remove();
+
+    const close = () => {
+      box.remove();
+      window.removeEventListener('keydown', onKey);
+    };
+    const onKey = (event) => {
+      if (event.key === 'Escape') close();
+    };
+
+    const box = el(
+      'div',
+      { class: 'lightbox', role: 'dialog', 'aria-label': alt, on: { click: close } },
+      el('img', { src, alt }),
+    );
+    window.addEventListener('keydown', onKey);
+    this.shadowRoot.appendChild(box);
+  }
+
   async _setQuantity(item, quantity) {
     try {
       await this._call('homebasket_lists/item/update', {
@@ -2135,6 +2175,13 @@ class HomeBasketListsCard extends HTMLElement {
     const thumb = el('div', { class: 'thumb' });
     const image = el('img', { alt: '', loading: 'lazy', hidden: true });
     thumb.append(image, icon(isTask(item.type) ? 'task' : 'image'));
+    // A picture is worth looking at: tapping it shows it whole, rather than
+    // opening the item like the rest of the row does.
+    thumb.addEventListener('click', (event) => {
+      if (image.hidden || !image.src) return;
+      event.stopPropagation();
+      this._showPhoto(image.src, item.summary);
+    });
     if (item.has_photo) this._fillItemPhoto(item, image);
     else if (item.product?.has_photo) this._fillPhoto(item.product.code, image);
     else if (item.product?.image) {

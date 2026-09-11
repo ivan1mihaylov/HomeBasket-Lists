@@ -159,6 +159,9 @@ item and use the square at the top to take one with the phone's camera or pick
 one from the gallery; it shows on the item's row from then on. Nothing is
 written until **Save**, and the × on the picture removes it.
 
+Tapping a picture on the list itself shows it over the whole screen; tapping it
+again — or Escape — puts it away.
+
 Photos are shrunk before they are sent, kept in Home Assistant's own storage
 (`.storage/homebasket_lists_images/<list>/`) and read back over the
 authenticated WebSocket API, so they are never served from a public path the
