@@ -216,14 +216,9 @@ def _spoken_unit(unit: str, quantity: float, language: str) -> str:
     if (pair := table.get(unit.casefold())) is None:
         return unit
 
-    if language == "bg":
-        # Bulgarian agrees with the last digit: 1 and 21 take the singular
-        # form, 11 does not.
-        whole = int(quantity)
-        one = quantity == whole and whole % 10 == 1 and whole % 100 != 11
-    else:
-        one = quantity == 1
-    return pair[0] if one else pair[1]
+    # Only one of a thing takes the singular: 21 броя, not 21 брой, which is
+    # how it is said when the number is a figure rather than words.
+    return pair[0] if quantity == 1 else pair[1]
 
 
 def _amount(item: dict[str, Any], language: str) -> str:
