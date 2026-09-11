@@ -169,7 +169,7 @@ is where Assist looks for phrases a custom integration adds.
 Quantities are said rather than read out: an item written *яйца, 5 бр.* is
 spoken as *5 броя яйца* — how many first, as it is said out loud — and the same
 for кг, г, л and мл. A unit the answer's language does not know is said exactly
-as it was typed, and English keeps its own order: *eggs 5 pcs*.
+as it was typed, and English keeps its own order, with a dash: *eggs - 5 pcs*.
 
 The last two answer for every list at once when no list is named, and say which
 list each thing is on. They ask about kinds, so *what do I need to buy* returns

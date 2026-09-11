@@ -232,9 +232,11 @@ def _amount(item: dict[str, Any], language: str) -> str:
         unit = _spoken_unit(unit, float(item["quantity"]), language)
 
     # Bulgarian says how many first - "5 броя яйца". English does not put a
-    # bare count in front of the thing, so there the name leads.
-    order = (written, unit, summary) if language == "bg" else (summary, written, unit)
-    return " ".join(part for part in order if part)
+    # bare count in front of the thing, so there the name leads and the amount
+    # follows a dash: "eggs - 5 pcs".
+    if language == "bg":
+        return " ".join(part for part in (written, unit, summary) if part)
+    return f"{summary} - {' '.join(part for part in (written, unit) if part)}"
 
 
 def _task(item: dict[str, Any], language: str) -> str:

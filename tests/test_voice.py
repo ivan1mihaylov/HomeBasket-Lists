@@ -248,7 +248,7 @@ async def main() -> None:
         # rather than guessed at.
         "and it all works in English too",
         await say(shopping, one, language="en"),
-        "4 things to buy: from Lidl: мляко 2 бр., хляб; from Kaufland: тиква; "
+        "4 things to buy: from Lidl: мляко - 2 бр., хляб; from Kaufland: тиква; "
         "anywhere: батерии.",
     )
     check(
@@ -258,7 +258,7 @@ async def main() -> None:
             FakeHass([FakeRuntime("Shopping", [item("eggs", quantity=10, unit="pcs")])]),
             language="en",
         ),
-        "1 thing to buy: anywhere: eggs 10 pieces.",
+        "1 thing to buy: anywhere: eggs - 10 pieces.",
     )
 
     # --- ticking off without saying which list -----------------------------
