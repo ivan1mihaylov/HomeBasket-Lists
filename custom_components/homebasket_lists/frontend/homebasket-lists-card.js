@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.14.0';
+const VERSION = '0.14.1';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -107,7 +107,7 @@ const TRANSLATIONS = {
       produce: 'Greengrocer',
       butcher: 'Butcher',
       cosmetics: 'Cosmetics',
-      medicines: 'Medicines',
+      medicines: 'Pharmacy',
       pets: 'Pet shop',
       building: 'Building supplies',
     },
@@ -234,7 +234,7 @@ const TRANSLATIONS = {
       produce: 'Плод и зеленчук',
       butcher: 'Месарница',
       cosmetics: 'Парфюмерия и козметика',
-      medicines: 'Лекарства',
+      medicines: 'Аптека',
       pets: 'Домашни любимци',
       building: 'Строителни материали',
     },

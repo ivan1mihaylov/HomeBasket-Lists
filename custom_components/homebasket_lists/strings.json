@@ -61,7 +61,7 @@
           "zones_produce": "Greengrocer",
           "zones_butcher": "Butcher",
           "zones_cosmetics": "Cosmetics",
-          "zones_medicines": "Medicines",
+          "zones_medicines": "Pharmacy",
           "zones_pets": "Pet shop",
           "zones_building": "Building supplies"
         },
@@ -82,7 +82,7 @@
           "zones_produce": "Zones where you are reminded about greengrocer. Empty means everywhere.",
           "zones_butcher": "Zones where you are reminded about butcher. Empty means everywhere.",
           "zones_cosmetics": "Zones where you are reminded about cosmetics. Empty means everywhere.",
-          "zones_medicines": "Zones where you are reminded about medicines. Empty means everywhere.",
+          "zones_medicines": "Zones where you are reminded about the pharmacy. Empty means everywhere.",
           "zones_pets": "Zones where you are reminded about pet shop. Empty means everywhere.",
           "zones_building": "Zones where you are reminded about building supplies. Empty means everywhere."
         }
