@@ -80,6 +80,7 @@ const TRANSLATIONS = {
     takePhoto: 'Take or upload a photo',
     removePhoto: 'Remove the photo',
     photoTooBig: 'That image could not be read.',
+    photoFromProduct: 'From HomeBasket — tap to use your own.',
     openOnOff: 'Open Food Facts page',
     sectionNutrition: 'Nutrition, per 100 g',
     sectionIngredients: 'Ingredients',
@@ -173,6 +174,7 @@ const TRANSLATIONS = {
     takePhoto: 'Снимай или качи снимка',
     removePhoto: 'Премахни снимката',
     photoTooBig: 'Изображението не можа да се прочете.',
+    photoFromProduct: 'Снимка от HomeBasket — натисни, за да сложиш своя.',
     openOnOff: 'Страница в Open Food Facts',
     sectionNutrition: 'Хранителни стойности, на 100 г',
     sectionIngredients: 'Съставки',
@@ -524,6 +526,7 @@ const STYLES = `
     overflow: hidden;
     background: var(--hb-sunken);
   }
+  .photo-preview { cursor: pointer; }
   .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .photo-remove {
     position: absolute;
@@ -1431,10 +1434,10 @@ class HomeBasketListsCard extends HTMLElement {
             );
           }
 
-          // A product HomeBasket knows brings its own picture; everything
-          // else - a task, a loose vegetable, a part from the hardware shop -
-          // can have one of its own.
-          if (!item.product) {
+          // Every item can carry a photo. A product HomeBasket knows brings
+          // one along, and that is what shows until you take your own.
+          {
+            const fromProduct = item.product?.image || null;
             const file = el('input', {
               type: 'file',
               accept: 'image/*',
@@ -1453,10 +1456,15 @@ class HomeBasketListsCard extends HTMLElement {
               file.value = '';
             });
 
-            // Either the square button or the picture in its place, never both.
+            // The square button, your photo, or the product's - and tapping
+            // any of them picks a new one.
             const box = el('div', { class: 'photo-box' });
+            const note = el('p', { class: 'hint', hidden: true, text: t.photoFromProduct });
             drawPhoto = () => {
-              if (!photoData) {
+              const shown = photoData || fromProduct;
+              note.hidden = Boolean(photoData) || !fromProduct;
+
+              if (!shown) {
                 box.replaceChildren(
                   el(
                     'button',
@@ -1471,25 +1479,40 @@ class HomeBasketListsCard extends HTMLElement {
                 );
                 return;
               }
-              box.replaceChildren(
-                el('div', { class: 'photo-preview' }, el('img', { src: photoData, alt: '' })),
-                el(
-                  'button',
-                  {
-                    class: 'photo-remove',
-                    title: t.removePhoto,
-                    'aria-label': t.removePhoto,
-                    on: {
-                      click: () => {
-                        photoData = null;
-                        photoTouched = true;
-                        drawPhoto();
+
+              const preview = el(
+                'div',
+                {
+                  class: 'photo-preview',
+                  title: t.takePhoto,
+                  on: { click: () => file.click() },
+                },
+                el('img', { src: shown, alt: '' }),
+              );
+              // Only your own photo is yours to remove; the product's belongs
+              // to the product. replaceChildren takes nodes, not nothing, so
+              // the button is added rather than passed as null.
+              box.replaceChildren(preview);
+              if (photoData) {
+                box.appendChild(
+                  el(
+                    'button',
+                    {
+                      class: 'photo-remove',
+                      title: t.removePhoto,
+                      'aria-label': t.removePhoto,
+                      on: {
+                        click: () => {
+                          photoData = null;
+                          photoTouched = true;
+                          drawPhoto();
+                        },
                       },
                     },
-                  },
-                  icon('close'),
-                ),
-              );
+                    icon('close'),
+                  ),
+                );
+              }
             };
             drawPhoto();
 
@@ -1509,7 +1532,14 @@ class HomeBasketListsCard extends HTMLElement {
             }
 
             content.appendChild(
-              el('div', { class: 'photo-top' }, el('label', { text: t.photo }), box, file),
+              el(
+                'div',
+                { class: 'photo-top' },
+                el('label', { text: t.photo }),
+                box,
+                note,
+                file,
+              ),
             );
           }
 
