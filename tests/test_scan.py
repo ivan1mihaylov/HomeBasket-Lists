@@ -273,10 +273,10 @@ async def main() -> None:
         """HomeBasket with two products, each known by a different database."""
 
         known = {
-            "3800230410016": {"code": "3800230410016", "name": "Velingrad water 1.5 l", "kind": "food"},
-            "4008496932504": {"code": "4008496932504", "name": "Zewa towels", "kind": None},
-            "8006540889824": {"code": "8006540889824", "name": "Head & Shoulders shampoo", "kind": "beauty"},
-            "7613034091406": {"code": "7613034091406", "name": "Felix cat food", "kind": "petfood"},
+            "3800230410016": {"code": "3800230410016", "name": "Velingrad water 1.5 l", "kind": "food", "department": "groceries"},
+            "4008496932504": {"code": "4008496932504", "name": "Zewa towels", "kind": None, "department": None},
+            "8006540889824": {"code": "8006540889824", "name": "Head & Shoulders shampoo", "kind": "beauty", "department": "cosmetics"},
+            "7613034091406": {"code": "7613034091406", "name": "Felix cat food", "kind": "petfood", "department": "pets"},
         }
         details = {"4008496932504": {"label": "Zewa towels", "kind": "product"}}
 
@@ -311,6 +311,19 @@ async def main() -> None:
     item = await runtime.async_add_item("Food for the cat", product_code="7613034091406")
     check("one Open Pet Food Facts knew lands as shopping", item["type"], "food")
     check("...neither of them asking again", databases.asked, ["4008496932504"])
+
+    # Which shop each is bought in comes from the product, not from the list.
+    check(
+        "a product carries its shop onto the list",
+        [runtime.store.find_by_summary(name)["department"]
+         for name in ("Velingrad water 0.5 l", "Shampoo for Ivan", "Food for the cat")],
+        ["groceries", "cosmetics", "pets"],
+    )
+    check(
+        "...and one HomeBasket cannot place has none",
+        runtime.store.find_by_summary("Zewa towels")["department"],
+        None,
+    )
 
     # Something the databases have never heard of keeps the kind it was given.
     item = await runtime.async_add_item("Call the plumber", type="task")

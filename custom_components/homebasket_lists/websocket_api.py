@@ -10,9 +10,10 @@ from homeassistant.components import websocket_api as ws
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import COUNTED, DOMAIN, DURATION_UNITS
+from .const import COUNTED, DEPARTMENTS, DOMAIN, DURATION_UNITS
 from .coordinator import ListRuntime
 from .images import InvalidImage
+from .options import department_zones
 from .store import STATUS_COMPLETED, STATUS_NEEDS_ACTION
 
 _REGISTERED = f"{DOMAIN}_ws_registered"
@@ -29,6 +30,7 @@ ITEM_VALIDATORS = {
     "status": vol.In([STATUS_NEEDS_ACTION, STATUS_COMPLETED]),
     "item_type": vol.Any(str, None),
     "store": vol.Any(str, None),
+    "department": vol.Any(vol.In(DEPARTMENTS), None),
     "quantity": vol.Any(int, float, None),
     "unit": vol.Any(str, None),
     "note": vol.Any(str, None),
@@ -81,6 +83,7 @@ def _describe(runtime: ListRuntime) -> dict[str, Any]:
                 "category": product.get("category"),
                 "image": product.get("image"),
                 "kind": product.get("kind"),
+                "department": product.get("department"),
                 "has_photo": product.get("has_photo", False),
             }
         items.append(entry)
@@ -92,6 +95,13 @@ def _describe(runtime: ListRuntime) -> dict[str, Any]:
         "item_types": runtime.item_types,
         "linked_lists": runtime.sync.linked_lists,
         "products_available": runtime.products.available,
+        # The kinds of shop something can be bought in, and the zones each is
+        # worth a reminder in - empty meaning everywhere.
+        "departments": DEPARTMENTS,
+        "department_zones": {
+            department: department_zones(runtime.entry, department)
+            for department in DEPARTMENTS
+        },
         "items": items,
     }
 

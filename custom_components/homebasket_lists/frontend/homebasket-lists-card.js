@@ -9,7 +9,7 @@
  * https://github.com/ivan1mihaylov/HomeBasket-Lists
  */
 
-const VERSION = '0.11.4';
+const VERSION = '0.12.0';
 
 /* ------------------------------------------------------------------ *
  * Translations
@@ -100,6 +100,18 @@ const TRANSLATIONS = {
     cameraNoDetector:
       'This browser reads no barcodes of its own, and the reader this ' +
       'integration serves could not be loaded. Update it, or add the item by hand.',
+    department: 'Shop category',
+    noDepartment: 'Not set',
+    departments: {
+      groceries: 'Groceries',
+      produce: 'Greengrocer',
+      butcher: 'Butcher',
+      cosmetics: 'Cosmetics',
+      pets: 'Pet shop',
+      building: 'Building supplies',
+    },
+    departmentEverywhere: 'Reminded about everywhere. Give this category zones in the list settings.',
+    departmentZones: (zones) => `Reminded about at: ${zones}.`,
     photoFromProduct: 'From HomeBasket — tap to use your own.',
     openOnOff: 'Open Food Facts page',
     sectionNutrition: 'Nutrition, per 100 g',
@@ -214,6 +226,18 @@ const TRANSLATIONS = {
     cameraNoDetector:
       'Този браузър не чете баркодове сам, а четецът, който интеграцията ' +
       'сервира, не можа да се зареди. Обнови я или добави записа ръчно.',
+    department: 'Категория магазин',
+    noDepartment: 'Без',
+    departments: {
+      groceries: 'Хранителни стоки',
+      produce: 'Плод и зеленчук',
+      butcher: 'Месарница',
+      cosmetics: 'Парфюмерия и козметика',
+      pets: 'Домашни любимци',
+      building: 'Строителни материали',
+    },
+    departmentEverywhere: 'Напомня се навсякъде. Дай зони на тази категория в настройките на списъка.',
+    departmentZones: (zones) => `Напомня се в: ${zones}.`,
     photoFromProduct: 'Снимка от HomeBasket — натисни, за да сложиш своя.',
     openOnOff: 'Страница в Open Food Facts',
     sectionNutrition: 'Хранителни стойности, на 100 г',
@@ -1042,6 +1066,10 @@ const DEFAULT_CONFIG = {
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code'];
 
+// The kinds of shop something can be bought in. The integration says which it
+// knows; this is only what to show when it is too old to say.
+const DEPARTMENTS = ['groceries', 'produce', 'butcher', 'cosmetics', 'pets', 'building'];
+
 // Where this integration publishes the reader it ships. HomeBasket serves the
 // same file, and either will do.
 const ZXING_URLS = ['/homebasket_lists/zxing.min.js', '/homebasket/zxing.min.js'];
@@ -1718,6 +1746,14 @@ class HomeBasketListsCard extends HTMLElement {
     return null;
   }
 
+  /** Where a kind of shop is worth a reminder, as the settings have it. */
+  _departmentHint(board, department) {
+    const t = this._t;
+    const zones = (board.department_zones || {})[department] || [];
+    if (!department || !zones.length) return t.departmentEverywhere;
+    return t.departmentZones(zones.map((zone) => this._storeName(zone)).join(', '));
+  }
+
   /** "30 min", "2 h" - what a task takes, in the unit it was given in. */
   _durationLabel(item) {
     if (!item.duration) return null;
@@ -1977,6 +2013,29 @@ class HomeBasketListsCard extends HTMLElement {
               fields.store.value = item.store || '';
               perType.appendChild(fields.store);
 
+              // Which kind of shop it is bought in. A product brings its own
+              // from HomeBasket; anything typed by hand can be given one, and
+              // the list's settings decide where each is worth a reminder.
+              perType.appendChild(el('label', { text: t.department }));
+              fields.department = el('select');
+              fields.department.appendChild(el('option', { value: '', text: t.noDepartment }));
+              for (const key of board.departments || DEPARTMENTS) {
+                fields.department.appendChild(
+                  el('option', { value: key, text: t.departments[key] || key }),
+                );
+              }
+              fields.department.value = item.department || '';
+              perType.appendChild(fields.department);
+
+              const shopHint = el('p', {
+                class: 'hint',
+                text: this._departmentHint(board, fields.department.value),
+              });
+              fields.department.addEventListener('change', () => {
+                shopHint.textContent = this._departmentHint(board, fields.department.value);
+              });
+              perType.appendChild(shopHint);
+
               // What a grocery has that a thing does not, and the other way
               // round: one goes off, the other comes from somewhere.
               if (isFood(type)) {
@@ -2070,6 +2129,9 @@ class HomeBasketListsCard extends HTMLElement {
                     : null,
                   unit: fields.unit ? fields.unit.value.trim() || null : null,
                   store: fields.store ? fields.store.value || null : null,
+                  department: fields.department
+                    ? fields.department.value || null
+                    : null,
                   due: fields.due ? fields.due.value || null : null,
                   link: fields.link ? fields.link.value.trim() || null : null,
                   duration: fields.duration

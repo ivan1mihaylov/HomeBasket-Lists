@@ -12,6 +12,7 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 
 from .const import (
+    CONF_DEPARTMENT_ZONES,
     CONF_DUPLICATES,
     CONF_ITEM_TYPES,
     DEFAULT_DUPLICATES,
@@ -128,6 +129,23 @@ def fill_amount(fields: dict[str, Any], kind: str | None, hass: Any = None) -> d
         if filled.get(key) in (None, ""):
             filled[key] = value
     return filled
+
+
+def department_zones(entry: ConfigEntry, department: str | None) -> list[str]:
+    """Return the zones one kind of shop is worth a reminder in.
+
+    Empty means everywhere, which is what everything did before departments
+    existed and what a department nobody has configured keeps doing.
+    """
+    if not department:
+        return []
+    configured = option(entry, CONF_DEPARTMENT_ZONES, {}) or {}
+    if not isinstance(configured, dict):
+        return []
+    zones = configured.get(department) or []
+    if isinstance(zones, str):
+        zones = [zones]
+    return [zone for zone in zones if zone]
 
 
 def duplicates(entry: ConfigEntry) -> str:

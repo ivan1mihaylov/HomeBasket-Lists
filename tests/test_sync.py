@@ -142,6 +142,9 @@ class NoProducts:
     def match(self, summary):
         return None
 
+    def department(self, code):
+        return None
+
 
 class Products:
     """HomeBasket, holding two products it knows by name and barcode."""
@@ -152,8 +155,14 @@ class Products:
             "code": "3800091500130",
             "name": "Натурална минерална вода Велинград 1,5 L",
             "kind": "food",
+            "department": "groceries",
         },
-        "8006540889824": {"code": "8006540889824", "name": "Шампоан", "kind": "beauty"},
+        "8006540889824": {
+            "code": "8006540889824",
+            "name": "Шампоан",
+            "kind": "beauty",
+            "department": "cosmetics",
+        },
     }
 
     def match(self, summary):
@@ -164,6 +173,11 @@ class Products:
 
     def get(self, code):
         return self.known.get(code)
+
+    def department(self, code):
+        from homebasket_lists.products import ProductLink
+
+        return ProductLink.department(self, code)
 
     async def async_details(self, code):
         return None
@@ -309,6 +323,19 @@ async def main() -> None:
     def amount_of(summary):
         item = store.find_by_summary(summary)
         return (item.get("quantity"), item.get("unit"))
+
+    def shop_of(summary):
+        return store.find_by_summary(summary).get("department")
+
+    for label, summary, expected in (
+        ("...bought where HomeBasket says", "Натурална минерална вода Велинград 1,5 L", "groceries"),
+        ("...and the shampoo at the cosmetics shop", "Шампоан", "cosmetics"),
+        ("...while a task belongs to no shop", "Да платя тока", None),
+    ):
+        actual = shop_of(summary)
+        if actual != expected:
+            raise AssertionError(f"{label}: got {actual!r}, expected {expected!r}")
+        print(f"  ok  {label}")
 
     for label, summary, expected in (
         ("a grocery from a to-do list is one of it", "Натурална минерална вода Велинград 1,5 L", (1, "pcs")),

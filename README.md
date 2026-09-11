@@ -165,6 +165,24 @@ and serves it from your own installation — nothing is fetched from a CDN, and
 there is nothing to set up. `zxing_url` points the card at a build of your own
 instead.
 
+### Which shop each kind of thing is worth a reminder in
+
+Items belong to a category of shop — groceries, greengrocer, butcher,
+cosmetics, pet shop, building supplies. A product brings its own from
+HomeBasket, which takes it from the database that knew the barcode; anything
+typed by hand can be given one in its sheet.
+
+Each category can name the zones it is worth a reminder in, in the list's
+settings. A category that names none is reminded about everywhere, which is
+what everything did before categories existed — so nothing changes until you
+configure something.
+
+On arrival, then:
+
+- an item sent to a particular shop belongs to that shop and nowhere else;
+- an item with no shop is reminded of at the zones its category names;
+- an item whose category names no zones can be bought anywhere, as before.
+
 ### Something that is already on the list
 
 Scanning the same product twice means two of it: the item's quantity goes up by

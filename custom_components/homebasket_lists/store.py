@@ -28,6 +28,7 @@ EDITABLE = (
     "type",
     "product_code",
     "store",
+    "department",
     "quantity",
     "unit",
     "note",
@@ -92,6 +93,7 @@ class ListStore:
         migrated = False
         for item in self._items:
             item.setdefault("unit", None)
+            item.setdefault("department", None)
             if isinstance(item.get("quantity"), str):
                 item["quantity"], unit = split_quantity(item["quantity"])
                 item["unit"] = item["unit"] or unit
@@ -140,6 +142,8 @@ class ListStore:
             # Left empty on purpose when an item arrives from another list;
             # a shop is something the user assigns later.
             "store": fields.get("store"),
+            # Which kind of shop it is bought in, when anything knows.
+            "department": fields.get("department"),
             "quantity": fields.get("quantity"),
             "unit": fields.get("unit"),
             "note": fields.get("note"),

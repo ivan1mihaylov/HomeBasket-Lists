@@ -150,6 +150,10 @@ class ListRuntime:
                 fields["product_code"]
             ) or buyable_type(self.entry)
 
+        # And where it is bought, which decides where you are reminded of it.
+        if not fields.get("department") and fields.get("product_code"):
+            fields["department"] = self.products.department(fields["product_code"])
+
         if not fields.get("store"):
             guess = await self.async_guess_store(fields.get("product_code"))
             if guess is not None:

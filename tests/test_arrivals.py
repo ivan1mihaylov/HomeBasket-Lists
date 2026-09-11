@@ -419,6 +419,61 @@ async def main() -> None:
         [["device_tracker.phone"]],
     )
 
+    # --- which shop a kind of thing is worth a reminder in -----------------
+    # The butcher's is no place to be told about shampoo, so a department can
+    # name the zones it belongs to. One that names none is still everywhere.
+    hass, store, watcher = await build(
+        department_zones={"cosmetics": ["zone.kaufland"], "butcher": ["zone.lidl"]}
+    )
+    await store.async_add(summary="Шампоан", department="cosmetics")
+    await store.async_add(summary="Кайма", department="butcher")
+    await store.async_add(summary="Хляб", department="groceries")
+    await store.async_add(summary="Батерии")
+
+    arrive(hass, watcher, "Lidl")
+    stay()
+    await flush(hass)
+    check(
+        "at the butcher's zone, the mince and what belongs everywhere",
+        hass.services.calls[0][2]["message"],
+        "3 неща за купуване: Кайма, Хляб, Батерии",
+    )
+
+    hass, store, watcher = await build(
+        department_zones={"cosmetics": ["zone.kaufland"], "butcher": ["zone.lidl"]}
+    )
+    await store.async_add(summary="Шампоан", department="cosmetics")
+    await store.async_add(summary="Кайма", department="butcher")
+    arrive(hass, watcher, "Kaufland")
+    stay()
+    await flush(hass)
+    check(
+        "and at the other zone, the shampoo and not the mince",
+        hass.services.calls[0][2]["message"],
+        "1 нещо за купуване: Шампоан",
+    )
+
+    # An item sent to a particular shop stays that shop's business, whatever
+    # kind of thing it is.
+    hass, store, watcher = await build(department_zones={"cosmetics": ["zone.kaufland"]})
+    await store.async_add(summary="Шампоан", department="cosmetics", store="zone.lidl")
+    arrive(hass, watcher, "Kaufland")
+    stay()
+    await flush(hass)
+    check("a shop chosen by hand outranks the department", hass.services.calls, [])
+
+    # Nothing configured behaves exactly as it did before departments existed.
+    hass, store, watcher = await build()
+    await store.async_add(summary="Шампоан", department="cosmetics")
+    arrive(hass, watcher, "Lidl")
+    stay()
+    await flush(hass)
+    check(
+        "with no zones named, a department is reminded of everywhere",
+        hass.services.calls[0][2]["message"],
+        "1 нещо за купуване: Шампоан",
+    )
+
     print("\nall arrival and item-kind checks passed")
 
 

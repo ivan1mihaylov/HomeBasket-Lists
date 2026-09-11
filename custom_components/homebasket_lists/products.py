@@ -15,7 +15,7 @@ from typing import Any
 
 from homeassistant.core import HomeAssistant
 
-from .const import HOMEBASKET_API, PRODUCT_KINDS
+from .const import DEPARTMENTS, HOMEBASKET_API, PRODUCT_KINDS
 from .store import normalize_summary
 
 
@@ -95,6 +95,18 @@ class ProductLink:
         if not kind:
             kind = ((await self.async_details(code)) or {}).get("kind")
         return PRODUCT_KINDS.get(kind) if kind else None
+
+    def department(self, code: str | None) -> str | None:
+        """Return which kind of shop HomeBasket buys a barcode in.
+
+        HomeBasket gives a product one from the database that knew the
+        barcode, and the user can move it; either way it is the product's
+        answer, not this list's.
+        """
+        if not code or (product := self.get(code)) is None:
+            return None
+        found = product.get("department")
+        return found if found in DEPARTMENTS else None
 
     async def async_scan(self, code: str) -> dict[str, Any] | None:
         """Run a barcode through HomeBasket and return what it is.

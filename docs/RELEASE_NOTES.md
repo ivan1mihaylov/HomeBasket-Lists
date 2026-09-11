@@ -1,11 +1,15 @@
-**Scanning onto a list works on an iPhone now.**
+**Reminders now know which kind of shop each thing comes from.**
 
-Safari reads no barcodes of its own, so the scan button beside the **+** did
-nothing there unless you hosted a ZXing build yourself. One is shipped with
-this integration now and served from your own installation — nothing is fetched
-from a CDN, and there is nothing to set up.
+Items belong to a category of shop — groceries, greengrocer, butcher,
+cosmetics, pet shop, building supplies. A product brings its own from
+HomeBasket, taken from the database that knew its barcode; anything typed by
+hand can be given one in its sheet.
 
-The fallback itself was also broken where it was configured: the card called a
-method the library does not have and unwrapped its export wrongly. Both fixed.
+Each category can name the zones it is worth a reminder in, in the list's
+settings, so the butcher's is not where you are told about shampoo. A category
+that names none is reminded about everywhere, exactly as everything behaved
+before — nothing changes until you configure something.
 
-`zxing_url` still works, for a build of your own.
+An item sent to a particular shop still belongs to that shop and nowhere else.
+
+Best with HomeBasket 0.10.0, which is where a product's category comes from.

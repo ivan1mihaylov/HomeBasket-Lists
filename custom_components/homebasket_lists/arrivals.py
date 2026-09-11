@@ -42,7 +42,7 @@ from .const import (
     DOMAIN,
     EVENT_ARRIVAL,
 )
-from .options import option
+from .options import department_zones, option
 from .store import STATUS_NEEDS_ACTION
 
 if TYPE_CHECKING:
@@ -297,13 +297,29 @@ class ArrivalWatcher:
         await self._async_send(target, title, message, zone)
 
     def _items_for(self, zone: str) -> list[dict[str, Any]]:
-        """Return what is still open for one shop."""
+        """Return what is still open for one shop.
+
+        An item sent to a particular shop belongs to that shop and nowhere
+        else. One with no shop is decided by what kind of thing it is: a
+        department told which zones it is worth a reminder in is named only
+        there, and one nobody has configured can be bought anywhere, as
+        everything could before departments existed.
+        """
         found = []
         for item in self.runtime.store.items:
             if item.get("status") != STATUS_NEEDS_ACTION:
                 continue
+
             store = item.get("store")
-            if store == zone or (store in (None, "") and self.include_unassigned):
+            if store not in (None, ""):
+                if store == zone:
+                    found.append(item)
+                continue
+
+            if zones := department_zones(self.runtime.entry, item.get("department")):
+                if zone in zones:
+                    found.append(item)
+            elif self.include_unassigned:
                 found.append(item)
         return found
 

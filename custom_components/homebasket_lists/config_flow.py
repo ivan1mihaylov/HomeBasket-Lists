@@ -43,7 +43,9 @@ from .const import (
     CONF_NOTIFY_SERVICE,
     CONF_NOTIFY_UNASSIGNED,
     CONF_NOTIFY_WATCH,
+    CONF_DEPARTMENT_ZONES,
     CONF_STORES,
+    DEPARTMENTS,
     DEFAULT_DUPLICATES,
     DEFAULT_ITEM_TYPES,
     DEFAULT_LINK_PRODUCTS,
@@ -68,6 +70,41 @@ def _minutes(maximum: float) -> NumberSelector:
             unit_of_measurement="min",
         )
     )
+
+
+# Each department's zones travel as their own field - a selector cannot edit a
+# dictionary - and are folded back into one setting on the way out.
+DEPARTMENT_ZONE_PREFIX = "zones_"
+
+
+def _department_fields(defaults: dict[str, Any]) -> dict:
+    """Return one zone picker per kind of shop.
+
+    Naming no zone for a department means it is worth a reminder everywhere,
+    which is what everything did before there were departments.
+    """
+    zones = defaults.get(CONF_DEPARTMENT_ZONES) or {}
+    if not isinstance(zones, dict):
+        zones = {}
+    return {
+        vol.Optional(
+            f"{DEPARTMENT_ZONE_PREFIX}{department}",
+            default=zones.get(department, []),
+        ): EntitySelector(EntitySelectorConfig(domain="zone", multiple=True))
+        for department in DEPARTMENTS
+    }
+
+
+def _fold_departments(user_input: dict[str, Any]) -> dict[str, Any]:
+    """Return the input with the per-department fields as one setting."""
+    folded = dict(user_input)
+    zones = {}
+    for department in DEPARTMENTS:
+        picked = folded.pop(f"{DEPARTMENT_ZONE_PREFIX}{department}", None) or []
+        if picked:
+            zones[department] = list(picked)
+    folded[CONF_DEPARTMENT_ZONES] = zones
+    return folded
 
 
 def _settings(defaults: dict[str, Any]) -> dict:
@@ -173,9 +210,12 @@ class HomeBasketListsOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Show and store the options."""
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            return self.async_create_entry(data=_fold_departments(user_input))
 
         defaults = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
-            step_id="init", data_schema=vol.Schema(_settings(defaults))
+            step_id="init",
+            data_schema=vol.Schema(
+                {**_settings(defaults), **_department_fields(defaults)}
+            ),
         )

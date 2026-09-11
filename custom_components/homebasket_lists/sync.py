@@ -207,6 +207,7 @@ class ListSync:
                         "status": item["status"],
                         "product_code": code,
                         "type": await self._async_kind(code),
+                        "department": self.products.department(code),
                     },
                 )
                 await self.store.async_add(
@@ -317,6 +318,8 @@ class ListSync:
                 changes["product_code"] = code
             if not item.get("type") and (kind := await self._async_kind(code)):
                 changes["type"] = kind
+            if not item.get("department") and (shop := self.products.department(code)):
+                changes["department"] = shop
             if changes:
                 changes = apply_type(self.entry, changes)
                 # Something that turns out to be shopping is one of it - but

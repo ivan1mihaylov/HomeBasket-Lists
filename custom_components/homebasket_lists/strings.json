@@ -55,7 +55,13 @@
           "notify_cooldown": "Then stay quiet for",
           "notify_unassigned": "Include items with no shop",
           "notify_service": "Notify service to fall back on",
-          "duplicates": "Something that is already on the list"
+          "duplicates": "Something that is already on the list",
+          "zones_groceries": "Groceries",
+          "zones_produce": "Greengrocer",
+          "zones_butcher": "Butcher",
+          "zones_cosmetics": "Cosmetics",
+          "zones_pets": "Pet shop",
+          "zones_building": "Building supplies"
         },
         "data_description": {
           "linked_lists": "Built-in to-do lists this one mirrors, in both directions.",
@@ -68,7 +74,13 @@
           "notify_cooldown": "How long the same shop waits before reminding the same person again.",
           "notify_unassigned": "Items that can be bought anywhere go on every shop's reminder.",
           "notify_service": "Used when the arriving device has no app of its own, for example notify.mobile_app_phone. Empty leaves the reminder in the notifications panel.",
-          "duplicates": "What happens when a product that is already open on the list is added again — by a scan, the card, an action or a voice assistant. A task has no quantity to raise, so there the one already on the list is kept either way."
+          "duplicates": "What happens when a product that is already open on the list is added again — by a scan, the card, an action or a voice assistant. A task has no quantity to raise, so there the one already on the list is kept either way.",
+          "zones_groceries": "Zones where you are reminded about groceries. Empty means everywhere.",
+          "zones_produce": "Zones where you are reminded about greengrocer. Empty means everywhere.",
+          "zones_butcher": "Zones where you are reminded about butcher. Empty means everywhere.",
+          "zones_cosmetics": "Zones where you are reminded about cosmetics. Empty means everywhere.",
+          "zones_pets": "Zones where you are reminded about pet shop. Empty means everywhere.",
+          "zones_building": "Zones where you are reminded about building supplies. Empty means everywhere."
         }
       }
     }

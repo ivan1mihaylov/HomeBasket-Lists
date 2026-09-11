@@ -51,6 +51,30 @@ PRODUCT_KINDS: Final = {
 }
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 
+# Which kind of shop something is bought in. HomeBasket gives a product one
+# from the database that knew its barcode; anything typed by hand can be given
+# one here. Each can be tied to the zones where it is worth a reminder - a
+# butcher's is not where you are told about shampoo.
+DEPARTMENT_GROCERIES: Final = "groceries"
+DEPARTMENT_PRODUCE: Final = "produce"
+DEPARTMENT_BUTCHER: Final = "butcher"
+DEPARTMENT_COSMETICS: Final = "cosmetics"
+DEPARTMENT_PETS: Final = "pets"
+DEPARTMENT_BUILDING: Final = "building"
+DEPARTMENTS: Final = [
+    DEPARTMENT_GROCERIES,
+    DEPARTMENT_PRODUCE,
+    DEPARTMENT_BUTCHER,
+    DEPARTMENT_COSMETICS,
+    DEPARTMENT_PETS,
+    DEPARTMENT_BUILDING,
+]
+
+# Where a department's zones are kept: {"butcher": ["zone.lidl"], ...}. A
+# department that names no zones is reminded about everywhere, which is what
+# everything did before there were departments at all.
+CONF_DEPARTMENT_ZONES: Final = "department_zones"
+
 # Something to buy is one of it unless someone says otherwise, counted in
 # pieces in the language the house speaks.
 DEFAULT_QUANTITY: Final = 1
