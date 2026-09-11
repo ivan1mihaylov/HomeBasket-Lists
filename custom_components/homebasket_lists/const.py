@@ -38,6 +38,16 @@ TYPE_FOOD: Final = "food"
 TYPE_PRODUCT: Final = "product"
 TYPE_TASK: Final = "task"
 ITEM_TYPES: Final = [TYPE_FOOD, TYPE_PRODUCT, TYPE_TASK]
+
+# HomeBasket tells a product apart by the database that knew its barcode, which
+# is a finer split than a shopping list needs: what the cat eats is still
+# shopping, and a shampoo is still a thing.
+PRODUCT_KINDS: Final = {
+    "food": TYPE_FOOD,
+    "petfood": TYPE_FOOD,
+    "beauty": TYPE_PRODUCT,
+    "product": TYPE_PRODUCT,
+}
 DEFAULT_ITEM_TYPES: Final = ITEM_TYPES
 DEFAULT_LINK_PRODUCTS: Final = True
 

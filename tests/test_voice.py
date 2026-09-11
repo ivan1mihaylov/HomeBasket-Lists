@@ -370,6 +370,20 @@ async def main() -> None:
         False,
     )
 
+    # HomeBasket tells a shampoo from a yoghurt; a shopping list only needs to
+    # know whether it is food or a thing.
+    kinds = ListRuntime(FakeHass([]), FakeEntry("Пазар"))
+    await kinds.store.async_load()
+    for summary, given, expected in (
+        ("мляко", "food", "food"),
+        ("храна за котка", "petfood", "food"),
+        ("шампоан", "beauty", "product"),
+        ("крушка", "product", "product"),
+    ):
+        await kinds.async_add_item(summary, type=given)
+        got = kinds.store.find_by_summary(summary)["type"]
+        check(f"{given} goes on the list as {expected}", got, expected)
+
     # The list decides what a repeat means.
     ignoring = ListRuntime(FakeHass([]), FakeEntry("Пазар", duplicates="ignore"))
     await ignoring.store.async_load()

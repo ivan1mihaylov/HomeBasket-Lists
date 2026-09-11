@@ -76,11 +76,12 @@ What each carries afterwards is what tells them apart:
 | **Product** | Quantity and unit, shop, **link** to where it comes from |
 | **Task** | Deadline, how long it takes, the tools it needs |
 
-A scan picks the kind by itself: HomeBasket knows which of the two databases
-knew the barcode — [Open Food Facts](https://world.openfoodfacts.org/) for
-groceries, [Open Products Facts](https://world.openproductsfacts.org/) for
-everything else — and the item lands as the right kind. So does an item added by
-name that matches a product HomeBasket knows.
+A scan picks the kind by itself: HomeBasket knows which database knew the
+barcode — Open Food Facts, Open Beauty Facts, Open Pet Food Facts or Open
+Products Facts — and the item lands as the right kind. A list buys two kinds
+where HomeBasket knows four, so what the cat eats is a grocery and a shampoo is
+a product. An item added by name that matches a product HomeBasket knows is
+typed the same way.
 
 A list set to **Tasks** only turns everything that lands on it into a task, and
 one set to **Groceries** only into a grocery — whether it came from the card, an

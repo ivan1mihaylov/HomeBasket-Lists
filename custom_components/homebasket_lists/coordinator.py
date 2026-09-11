@@ -18,6 +18,7 @@ from .const import (
     DUPLICATE_IGNORE,
     EVENT_UPDATED,
     KEPT,
+    PRODUCT_KINDS,
     SIGNAL_UPDATED,
     TYPE_TASK,
 )
@@ -120,6 +121,10 @@ class ListRuntime:
         bottles, not two lines - keep the one that is there, or write a second
         line anyway. Returns the item and one of "added", "counted" or "kept".
         """
+        # A caller may speak HomeBasket's kinds rather than the list's.
+        if fields.get("type") in PRODUCT_KINDS:
+            fields["type"] = PRODUCT_KINDS[fields["type"]]
+
         existing = self.store.find_by_summary(summary, status=STATUS_OPEN)
         if existing is not None:
             mode = duplicates(self.entry)
@@ -135,10 +140,10 @@ class ListRuntime:
 
         if not fields.get("product_code") and (product := self.products.match(summary)):
             fields["product_code"] = product["code"]
-            # HomeBasket knows whether it is a grocery or a thing; an item that
+            # HomeBasket knows what the barcode turned out to be; an item that
             # was not told which takes the product's word for it.
             if not fields.get("type") and product.get("kind"):
-                fields["type"] = product["kind"]
+                fields["type"] = PRODUCT_KINDS.get(product["kind"])
 
         if not fields.get("store"):
             guess = await self.async_guess_store(fields.get("product_code"))
