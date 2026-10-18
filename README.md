@@ -391,6 +391,13 @@ if result and result["increased"]:
 only list there is. It returns None when that is not clear enough to act on, so
 a caller can fall back to whatever it did before.
 
+Since `api_version` 2 it also takes `photo`, a data URL of a JPEG, PNG or WebP
+image, which becomes the item's own picture unless the item already has one:
+
+```python
+await api.async_add_item("Сьомга", photo="data:image/jpeg;base64,…")
+```
+
 Listen for `homebasket_lists_updated` to know when something changed.
 
 ## The card

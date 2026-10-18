@@ -1,3 +1,1 @@
-The manifest's keys are in the order Home Assistant's own `hassfest` check
-wants: domain, name, then the rest alphabetically. Nothing about the
-integration changes — but the check has to pass before HACS will list it.
+- **Pictures from other integrations.** Another integration can now send a picture with something it puts on a list, and the item shows it as its own photo, ahead of HomeBasket's product picture. Mealie Planner uses this so that an offer added to the list arrives with the offer's picture. An item that already has a photo of its own keeps it. For integration authors: `api_version` is 2, and `async_add_item` takes `photo`, a data URL.

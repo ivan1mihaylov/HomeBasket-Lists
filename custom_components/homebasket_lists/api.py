@@ -13,17 +13,22 @@ Listen for `homebasket_lists_updated` to know when something changed.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 
 from .const import COUNTED, DOMAIN
+from .images import InvalidImage
 from .store import STATUS_NEEDS_ACTION, normalize_summary
 
 if TYPE_CHECKING:
     from .coordinator import ListRuntime
 
-API_VERSION = 1
+_LOGGER = logging.getLogger(__name__)
+
+# 2: async_add_item takes a photo.
+API_VERSION = 2
 
 
 class HomeBasketListsAPI:
@@ -93,13 +98,15 @@ class HomeBasketListsAPI:
         *,
         entry_id: str | None = None,
         name: str | None = None,
+        photo: str | None = None,
         **fields: Any,
     ) -> dict[str, Any] | None:
         """Put something on a list, or add one more of it if it is there.
 
         `fields` takes the same names an item has: quantity, unit, store,
-        product_code, note, type. Returns what happened, or None when there is
-        no such list:
+        product_code, note, type. `photo`, a data URL of a JPEG, PNG or WebP
+        image, becomes the item's own picture unless it already has one.
+        Returns what happened, or None when there is no such list:
 
             {"entry_id": ..., "list": ..., "item": {...}, "increased": False}
         """
@@ -108,6 +115,14 @@ class HomeBasketListsAPI:
             return None
 
         item, outcome = await runtime.async_add_or_increase(summary, **fields)
+        if photo and not runtime.images.has(item["uid"]):
+            try:
+                await runtime.images.async_set(item["uid"], photo)
+            except InvalidImage as err:
+                # A picture is never worth losing the item over.
+                _LOGGER.debug("Photo for %s not kept: %s", summary, err)
+            else:
+                runtime.async_notify()
         return {
             "entry_id": runtime.entry.entry_id,
             "list": runtime.name,
